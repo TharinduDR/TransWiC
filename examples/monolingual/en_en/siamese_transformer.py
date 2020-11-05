@@ -1,14 +1,17 @@
 import csv
+import logging
 import os
 import shutil
 
+import numpy as np
+
 from sklearn.model_selection import train_test_split
-from torch.testing._internal.common_utils import SEED
 
 from examples.common.reader import read_training_file
 from examples.monolingual.en_en.siamese_transformer_config import DATA_DIRECTORY, TEMP_DIRECTORY, \
     siamese_transformer_config, MODEL_NAME
-from transwic.algo.siamese_transformer import models
+from transwic.algo.siamese_transformer import models, SiameseTransWiC
+from transwic.algo.siamese_transformer.readers import InputExample
 
 if not os.path.exists(TEMP_DIRECTORY):
     os.makedirs(TEMP_DIRECTORY)
@@ -19,7 +22,6 @@ dev = read_training_file(os.path.join(DATA_DIRECTORY, "trial.en-en.data"), os.pa
 if siamese_transformer_config["evaluate_during_training"]:
     if siamese_transformer_config["n_fold"] > 0:
         dev_preds = np.zeros((len(dev), siamese_transformer_config["n_fold"]))
-        test_preds = np.zeros((len(test), siamese_transformer_config["n_fold"]))
         for i in range(siamese_transformer_config["n_fold"]):
 
             if os.path.exists(siamese_transformer_config['best_model_dir']) and os.path.isdir(
@@ -40,7 +42,6 @@ if siamese_transformer_config["evaluate_during_training"]:
             dev.to_csv(os.path.join(siamese_transformer_config['cache_dir'], "dev_df.tsv"), header=True, sep='\t',
                        index=False, quoting=csv.QUOTE_NONE)
 
-
             word_embedding_model = models.Transformer(MODEL_NAME, max_seq_length=siamese_transformer_config[
                 'max_seq_length'])
 
@@ -48,8 +49,25 @@ if siamese_transformer_config["evaluate_during_training"]:
                                            pooling_mode_mean_tokens=True,
                                            pooling_mode_cls_token=False,
                                            pooling_mode_max_tokens=False)
-        #
-        #     model = SiameseTransQuestModel(modules=[word_embedding_model, pooling_model])
+
+            model = SiameseTransWiC(modules=[word_embedding_model, pooling_model])
+
+            logging.info("Read AllNLI train dataset")
+
+            label2int = {"F": 0, "T": 1}
+            train_samples = []
+
+            train_file_reader = csv.DictReader(open(os.path.join(siamese_transformer_config['cache_dir'], "train_df.tsv")))
+            for row in train_file_reader:
+                label_id = label2int[row['tag']]
+                train_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=label_id))
+
+            train_dataset = SentencesDataset(train_samples, model=model)
+            train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+            train_loss = losses.SoftmaxLoss(model=model,
+                                            sentence_embedding_dimension=model.get_sentence_embedding_dimension(),
+                                            num_labels=len(label2int))
+
         #     train_data = SentencesDataset(sts_reader.get_examples('train.tsv'), model)
         #     train_dataloader = DataLoader(train_data, shuffle=True,
         #                                   batch_size=siamese_transformer_config['train_batch_size'])
