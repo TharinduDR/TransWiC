@@ -70,7 +70,6 @@ if siamese_transformer_config["evaluate_during_training"]:
 
             train_file_reader = csv.DictReader(open(os.path.join(siamese_transformer_config['cache_dir'], "train_df.tsv")), delimiter='\t', quoting=csv.QUOTE_NONE)
             for row in train_file_reader:
-                print(row)
                 label_id = label2int[row['tag']]
                 train_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=label_id))
 
