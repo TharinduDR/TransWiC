@@ -1,8 +1,7 @@
 from multiprocessing import cpu_count
 
-DATA_DIRECTORY = "data/"
+DATA_DIRECTORY = "examples/monolingual/en_en/data/"
 TEMP_DIRECTORY = "temp/"
-
 
 MODEL_TYPE = "xlmroberta"
 MODEL_NAME = "xlm-roberta-large"
