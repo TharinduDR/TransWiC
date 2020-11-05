@@ -6,11 +6,13 @@ import shutil
 import numpy as np
 
 from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader
 
 from examples.common.reader import read_training_file
 from examples.monolingual.en_en.siamese_transformer_config import DATA_DIRECTORY, TEMP_DIRECTORY, \
     siamese_transformer_config, MODEL_NAME
-from transwic.algo.siamese_transformer import models, SiameseTransWiC
+from transwic.algo.siamese_transformer import models, SiameseTransWiC, losses
+from transwic.algo.siamese_transformer.datasets import SentencesDataset
 from transwic.algo.siamese_transformer.readers import InputExample
 
 if not os.path.exists(TEMP_DIRECTORY):
@@ -34,7 +36,7 @@ if siamese_transformer_config["evaluate_during_training"]:
 
             os.makedirs(siamese_transformer_config['cache_dir'])
 
-            train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED * i)
+            train_df, eval_df = train_test_split(train, test_size=0.1, random_state=siamese_transformer_config['manual_seed'] * i)
             train_df.to_csv(os.path.join(siamese_transformer_config['cache_dir'], "train_df.tsv"), header=True, sep='\t',
                             index=False, quoting=csv.QUOTE_NONE)
             eval_df.to_csv(os.path.join(siamese_transformer_config['cache_dir'], "eval_df.tsv"), header=True, sep='\t',
@@ -52,7 +54,7 @@ if siamese_transformer_config["evaluate_during_training"]:
 
             model = SiameseTransWiC(modules=[word_embedding_model, pooling_model])
 
-            logging.info("Read AllNLI train dataset")
+            logging.info("Read train dataset")
 
             label2int = {"F": 0, "T": 1}
             train_samples = []
@@ -63,10 +65,11 @@ if siamese_transformer_config["evaluate_during_training"]:
                 train_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=label_id))
 
             train_dataset = SentencesDataset(train_samples, model=model)
-            train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+            train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=siamese_transformer_config['train_batch_size'])
             train_loss = losses.SoftmaxLoss(model=model,
                                             sentence_embedding_dimension=model.get_sentence_embedding_dimension(),
                                             num_labels=len(label2int))
+
 
         #     train_data = SentencesDataset(sts_reader.get_examples('train.tsv'), model)
         #     train_dataloader = DataLoader(train_data, shuffle=True,
