@@ -18,17 +18,17 @@ from tqdm.autonotebook import tqdm, trange
 import math
 import queue
 
-from . import __DOWNLOAD_SERVER__
+from .. import __DOWNLOAD_SERVER__
 from .evaluation import sentence_evaluator
 from .util import import_from_string, batch_to_device, http_get
-from .datasets.EncodeDataset import EncodeDataset
+from .datasets.encode_dataset import EncodeDataset
 from .models import Transformer, Pooling
-from . import __version__
+from ... import __version__
 
 
 class SiameseTransWiC(nn.Sequential):
     """
-    Loads or create a SentenceTransformer model, that can be used to map sentences / text to embeddings.
+    Loads or create a SiameseTransWiC model, that can be used to map sentences / text to embeddings.
 
     :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path, it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model from Huggingface models repository with that name.
     :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
@@ -92,7 +92,7 @@ class SiameseTransWiC(nn.Sequential):
                         shutil.rmtree(model_path)
                         raise e
 
-            #### Load from disk
+            # Load from disk
             if model_path is not None:
                 logging.info("Load SentenceTransformer from folder: {}".format(model_path))
 
@@ -121,7 +121,6 @@ class SiameseTransWiC(nn.Sequential):
             logging.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
-
 
     def encode(self, sentences: Union[str, List[str], List[int]],
                batch_size: int = 32,
@@ -205,8 +204,6 @@ class SiameseTransWiC(nn.Sequential):
 
         return all_embeddings
 
-
-
     def start_multi_process_pool(self, target_devices: List[str] = None, encode_batch_size: int = 32):
         """
         Starts multi process to process the encoding with several, independent processes.
@@ -232,12 +229,11 @@ class SiameseTransWiC(nn.Sequential):
         processes = []
 
         for cuda_id in target_devices:
-            p = ctx.Process(target=SentenceTransformer._encode_multi_process_worker, args=(cuda_id, self, input_queue, output_queue, encode_batch_size), daemon=True)
+            p = ctx.Process(target=SiameseTransWiC._encode_multi_process_worker, args=(cuda_id, self, input_queue, output_queue, encode_batch_size), daemon=True)
             p.start()
             processes.append(p)
 
         return {'input': input_queue, 'output': output_queue, 'processes': processes}
-
 
     @staticmethod
     def stop_multi_process_pool(pool):
@@ -253,7 +249,6 @@ class SiameseTransWiC(nn.Sequential):
 
         pool['input'].close()
         pool['output'].close()
-
 
     def encode_multi_process(self, sentences: List[str], pool: Dict[str, object], is_pretokenized: bool = False, chunk_size=None):
         """
@@ -305,7 +300,6 @@ class SiameseTransWiC(nn.Sequential):
                 results_queue.put([id, embeddings])
             except queue.Empty:
                 break
-
 
     def get_max_seq_length(self):
         """
@@ -400,14 +394,12 @@ class SiameseTransWiC(nn.Sequential):
 
                     feature_lists[feature_name].append(sentence_features[feature_name])
 
-
             for feature_name in feature_lists:
                 feature_lists[feature_name] = torch.cat(feature_lists[feature_name])
 
             features.append(feature_lists)
 
         return {'features': features, 'labels': torch.stack(labels)}
-
 
     def smart_batching_collate_text_only(self, batch):
         """
@@ -535,7 +527,6 @@ class SiameseTransWiC(nn.Sequential):
             optimizers.append(optimizer)
             schedulers.append(scheduler_obj)
 
-
         global_step = 0
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
 
@@ -559,7 +550,6 @@ class SiameseTransWiC(nn.Sequential):
                     try:
                         data = next(data_iterator)
                     except StopIteration:
-                        #logging.info("Restart data_iterator")
                         data_iterator = iter(dataloaders[train_idx])
                         data_iterators[train_idx] = data_iterator
                         data = next(data_iterator)
@@ -624,7 +614,6 @@ class SiameseTransWiC(nn.Sequential):
                 self.best_score = score
                 if save_best_model:
                     self.save(output_path)
-
 
     @staticmethod
     def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
