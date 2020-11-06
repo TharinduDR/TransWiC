@@ -17,6 +17,7 @@ from transwic import LoggingHandler
 from transwic.algo.siamese_transformer import models, SiameseTransWiC, losses
 from transwic.algo.siamese_transformer.datasets import SentencesDataset
 from transwic.algo.siamese_transformer.evaluation.binary_classification_evaluator import BinaryClassificationEvaluator
+from transwic.algo.siamese_transformer.evaluation.softmax_accuracy_evaluator import SoftmaxAccuracyEvaluator
 from transwic.algo.siamese_transformer.readers import InputExample
 
 #### Just some code to print debug information to stdout
@@ -57,30 +58,18 @@ if siamese_transformer_config["evaluate_during_training"]:
             dev.to_csv(os.path.join(siamese_transformer_config['cache_dir'], "dev_df.tsv"), header=True, sep='\t',
                        index=False, quoting=csv.QUOTE_NONE, escapechar='\\')
 
-            word_embedding_model = models.Transformer(MODEL_NAME, max_seq_length=siamese_transformer_config[
-                'max_seq_length'])
-
-            pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
-                                           pooling_mode_mean_tokens=True,
-                                           pooling_mode_cls_token=False,
-                                           pooling_mode_max_tokens=False)
-
-            model = SiameseTransWiC(modules=[word_embedding_model, pooling_model])
-
-            logging.info("Read train dataset")
+            # Define our CrossEncoder model. We use distilroberta-base as basis and setup it up to predict 3 labels
+            model = SiameseTransWiC(MODEL_NAME, num_labels=len(label2int))
+            train_file_reader = csv.DictReader(open(os.path.join(siamese_transformer_config['cache_dir'], "train_df.tsv")),
+                                               delimiter='\t', quoting=csv.QUOTE_NONE)
 
             train_samples = []
-
-            train_file_reader = csv.DictReader(open(os.path.join(siamese_transformer_config['cache_dir'], "train_df.tsv")), delimiter='\t', quoting=csv.QUOTE_NONE)
             for row in train_file_reader:
                 label_id = label2int[row['tag']]
                 train_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=label_id))
 
-            train_dataset = SentencesDataset(train_samples, model=model)
-            train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=siamese_transformer_config['train_batch_size'])
-            train_loss = losses.SoftmaxLoss(model=model,
-                                            sentence_embedding_dimension=model.get_sentence_embedding_dimension(),
-                                            num_labels=len(label2int))
+            # We wrap train_samples, which is a list ot InputExample, in a pytorch DataLoader
+            train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=siamese_transformer_config['train_batch_size'])
 
             eval_samples = []
             eval_file_reader = csv.DictReader(
@@ -88,61 +77,17 @@ if siamese_transformer_config["evaluate_during_training"]:
             for row in eval_file_reader:
                 label_id = label2int[row['tag']]
                 eval_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=label_id))
+            # During training, we use CESoftmaxAccuracyEvaluator to measure the accuracy on the dev set.
+            evaluator = SoftmaxAccuracyEvaluator.from_input_examples(eval_samples, name='eval_results')
 
-            evaluator = BinaryClassificationEvaluator.from_input_examples(eval_samples, batch_size=siamese_transformer_config['eval_batch_size'],
-                                                                             name='eval_result.txt')
-
-            # Configure the training
-            num_epochs = siamese_transformer_config['num_train_epochs']
-
-            warmup_steps = math.ceil(
-                len(train_dataset) * num_epochs / siamese_transformer_config['train_batch_size'] * 0.1)  # 10% of train data for warm-up
+            warmup_steps = math.ceil(len(train_dataloader) * siamese_transformer_config['num_train_epochs'] * 0.1)  # 10% of train data for warm-up
             logging.info("Warmup-steps: {}".format(warmup_steps))
 
-            model.fit(train_objectives=[(train_dataloader, train_loss)],
+            # Train the model
+            model.fit(train_dataloader=train_dataloader,
                       evaluator=evaluator,
                       epochs=siamese_transformer_config['num_train_epochs'],
                       evaluation_steps=siamese_transformer_config["evaluate_during_training_steps"],
-                      optimizer_params={'lr': siamese_transformer_config["learning_rate"],
-                                        'eps': siamese_transformer_config["adam_epsilon"],
-                                        'correct_bias': False},
+                      optimizer_params={'lr': siamese_transformer_config["learning_rate"]},
                       warmup_steps=warmup_steps,
-                      output_path=siamese_transformer_config['best_model_dir']
-                      )
-
-            model = SiameseTransWiC(siamese_transformer_config['best_model_dir'])
-
-            dev_samples = []
-            dev_file_reader = csv.DictReader(
-                open(os.path.join(siamese_transformer_config['cache_dir'], "dev_df.tsv")), delimiter='\t',
-                quoting=csv.QUOTE_NONE)
-            for row in dev_file_reader:
-                label_id = label2int[row['tag']]
-                dev_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=label_id))
-
-            dev_evaluator = BinaryClassificationEvaluator.from_input_examples(dev_samples,
-                                                                          batch_size=siamese_transformer_config[
-                                                                              'eval_batch_size'],
-                                                                          name='dev_result')
-
-            model.evaluate(dev_evaluator, output_path=os.path.join(siamese_transformer_config['cache_dir'], "dev_result.txt"))
-
-            with open(os.path.join(siamese_transformer_config['cache_dir'], "dev_result.txt")) as f:
-                dev_preds[:, i] = list(map(int, f.read().splitlines()))
-
-        final_predictions = []
-        for row in dev_preds:
-            row = row.tolist()
-            final_predictions.append(reverse_label2int[int(max(set(row), key=row.count))])
-
-        dev['predictions'] = final_predictions
-        time.sleep(5)
-
-        logging.info("Started Evaluation")
-        results = evaluatation_scores(dev, 'class', 'predictions', labels, pos_label)
-
-        print("Confusion Matrix {}".format(results[CONFUSION_MATRIX]))
-        print("Accuracy {}".format(results[ACCURACY]))
-        print("F1 {}".format(results[F1]))
-        print("Recall {}".format(results[RECALL]))
-        print("Precision {}".format(results[PRECISION]))
+                      output_path=siamese_transformer_config['best_model_dir'])
