@@ -1,2 +1,2 @@
-from .transformer import Transformer
-from .pooling import Pooling
+from .Transformer import Transformer
+from .Pooling import Pooling

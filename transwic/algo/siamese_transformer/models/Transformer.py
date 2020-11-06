@@ -30,7 +30,6 @@ class Transformer(nn.Module):
         self.auto_model = AutoModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, cache_dir=cache_dir, **tokenizer_args)
 
-
     def forward(self, features):
         """Returns token_embeddings, cls_token"""
         output_states = self.auto_model(**features)
