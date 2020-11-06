@@ -1,7 +1,7 @@
 import torch
 from torch import nn, Tensor
 from typing import Union, Tuple, List, Iterable, Dict
-from .. import siamese_transwic
+from .. import SentenceTransformer
 import logging
 
 
@@ -30,7 +30,7 @@ class SoftmaxLoss(nn.Module):
         train_loss = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.get_sentence_embedding_dimension(), num_labels=train_num_labels)
     """
     def __init__(self,
-                 model: siamese_transwic,
+                 model: SentenceTransformer,
                  sentence_embedding_dimension: int,
                  num_labels: int,
                  concatenation_sent_rep: bool = True,

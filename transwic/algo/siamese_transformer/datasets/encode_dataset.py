@@ -1,12 +1,12 @@
 from torch.utils.data import Dataset
 from typing import List, Union
-from .. import siamese_transwic
+from .. import SentenceTransformer
 
 
 class EncodeDataset(Dataset):
     def __init__(self,
                  sentences: Union[List[str], List[int]],
-                 model: siamese_transwic,
+                 model: SentenceTransformer,
                  is_tokenized: bool = True):
         """
         EncodeDataset is used by SentenceTransformer.encode method. It just stores

@@ -3,6 +3,7 @@ import logging
 import math
 import os
 import shutil
+import time
 
 import numpy as np
 
@@ -29,6 +30,9 @@ if not os.path.exists(TEMP_DIRECTORY):
 
 train = read_training_file(os.path.join(DATA_DIRECTORY, "training.en-en.data"), os.path.join(DATA_DIRECTORY, "training.en-en.gold"))
 dev = read_training_file(os.path.join(DATA_DIRECTORY, "trial.en-en.data"), os.path.join(DATA_DIRECTORY, "trial.en-en.gold"))
+
+label2int = {"F": 0, "T": 1}
+reverse_label2int = dict((v, k) for k, v in label2int.items())
 
 if siamese_transformer_config["evaluate_during_training"]:
     if siamese_transformer_config["n_fold"] > 0:
@@ -65,7 +69,6 @@ if siamese_transformer_config["evaluate_during_training"]:
 
             logging.info("Read train dataset")
 
-            label2int = {"F": 0, "T": 1}
             train_samples = []
 
             train_file_reader = csv.DictReader(open(os.path.join(siamese_transformer_config['cache_dir'], "train_df.tsv")), delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -120,6 +123,26 @@ if siamese_transformer_config["evaluate_during_training"]:
             dev_evaluator = BinaryClassificationEvaluator.from_input_examples(dev_samples,
                                                                           batch_size=siamese_transformer_config[
                                                                               'eval_batch_size'],
-                                                                          name='dev_result.txt')
+                                                                          name='dev_result')
 
             model.evaluate(dev_evaluator, output_path=os.path.join(siamese_transformer_config['cache_dir'], "dev_result.txt"))
+
+            with open(os.path.join(siamese_transformer_config['cache_dir'], "dev_result.txt")) as f:
+                dev_preds[:, i] = list(map(int, f.read().splitlines()))
+
+        final_predictions = []
+        for row in dev_preds:
+            row = row.tolist()
+            final_predictions.append(reverse_label2int[int(max(set(row), key=row.count))])
+
+        dev['predictions'] = final_predictions
+        time.sleep(5)
+
+        logging.info("Started Evaluation")
+        results = evaluatation_scores(dev, 'class', 'predictions', labels, pos_label)
+
+        print("Confusion Matrix {}".format(results[CONFUSION_MATRIX]))
+        print("Accuracy {}".format(results[ACCURACY]))
+        print("F1 {}".format(results[F1]))
+        print("Recall {}".format(results[RECALL]))
+        print("Precision {}".format(results[PRECISION]))

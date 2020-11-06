@@ -1,7 +1,7 @@
 from torch.utils.data import Dataset
 from typing import List
 import torch
-from .. import siamese_transwic
+from .. import SentenceTransformer
 from ..readers.input_example import InputExample
 
 
@@ -14,7 +14,7 @@ class SentencesDataset(Dataset):
     """
     def __init__(self,
                  examples: List[InputExample],
-                 model: siamese_transwic
+                 model: SentenceTransformer
                  ):
         """
         Create a new SentencesDataset with the tokenized texts and the labels as Tensor
