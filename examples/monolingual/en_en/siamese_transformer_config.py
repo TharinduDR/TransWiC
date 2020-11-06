@@ -3,8 +3,8 @@ from multiprocessing import cpu_count
 DATA_DIRECTORY = "examples/monolingual/en_en/data/"
 TEMP_DIRECTORY = "temp/"
 
-MODEL_TYPE = "xlmroberta"
-MODEL_NAME = "xlm-roberta-large"
+MODEL_TYPE = "bert"
+MODEL_NAME = "bert-base-cased"
 
 siamese_transformer_config = {
     'output_dir': 'temp/outputs/',
@@ -17,9 +17,9 @@ siamese_transformer_config = {
     'train_batch_size': 8,
     'gradient_accumulation_steps': 1,
     'eval_batch_size': 8,
-    'num_train_epochs': 6,
+    'num_train_epochs': 4,
     'weight_decay': 0,
-    'learning_rate': 1e-5,
+    'learning_rate': 1e-4,
     'adam_epsilon': 1e-8,
     'warmup_ratio': 0.06,
     'warmup_steps': 0,
