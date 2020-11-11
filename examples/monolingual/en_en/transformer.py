@@ -7,12 +7,9 @@ import torch
 import numpy as np
 
 from sklearn.model_selection import train_test_split
-
 from examples.common.reader import read_training_file
 from examples.monolingual.en_en.transformer_config import DATA_DIRECTORY, TEMP_DIRECTORY, \
     transformer_config, MODEL_NAME, MODEL_TYPE
-
-
 from transwic.algo.transformer.monotranswic import MonoTransWiCModel
 
 
@@ -46,25 +43,22 @@ if transformer_config["evaluate_during_training"]:
         dev['predictions'] = dev_preds.mean(axis=1)
 
     else:
-        model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=1, use_cuda=torch.cuda.is_available(),
+        model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
                            args=transformer_config)
         train_df, eval_df = train_test_split(train, test_size=0.1, random_state=transformer_config['manual_seed'])
 
         start = time.time()
         model.train_model(train_df, eval_df=eval_df, acc=sklearn.metrics.accuracy_score)
         end = time.time()
-        print("Training time")
-        print(end - start)
 
-        model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=1,
+
+        model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
                            use_cuda=torch.cuda.is_available(), args=transformer_config)
         result, model_outputs, wrong_predictions = model.eval_model(dev, acc=sklearn.metrics.accuracy_score)
-        print("Testing time")
-        print(end - start)
         dev['predictions'] = model_outputs
 
 else:
-    model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=1, use_cuda=torch.cuda.is_available(),
+    model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
                        args=transformer_config)
     model.train_model(train, acc=sklearn.metrics.accuracy_score)
     result, model_outputs, wrong_predictions = model.eval_model(dev, acc=sklearn.metrics.accuracy_score)
