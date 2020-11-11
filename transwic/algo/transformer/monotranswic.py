@@ -95,7 +95,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-class ClassificationModel:
+class MonoTransWiCModel:
     def __init__(
         self,
         model_type,

@@ -6,14 +6,14 @@ TEMP_DIRECTORY = "temp/"
 MODEL_TYPE = "bert"
 MODEL_NAME = "bert-base-cased"
 
-siamese_transformer_config = {
+transformer_config = {
     'output_dir': 'temp/outputs/',
     "best_model_dir": "temp/outputs/best_model",
     'cache_dir': 'temp/cache_dir/',
 
     'fp16': False,
     'fp16_opt_level': 'O1',
-    'max_seq_length': 80,
+    'max_seq_length': 120,
     'train_batch_size': 8,
     'gradient_accumulation_steps': 1,
     'eval_batch_size': 8,
@@ -37,8 +37,6 @@ siamese_transformer_config = {
     'use_cached_eval_features': False,
     'save_eval_checkpoints': True,
     'tensorboard_dir': None,
-
-    'regression': True,
 
     'overwrite_output_dir': True,
     'reprocess_input_data': True,
