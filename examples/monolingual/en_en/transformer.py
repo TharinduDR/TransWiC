@@ -54,7 +54,7 @@ if transformer_config["evaluate_during_training"]:
             result, model_outputs, wrong_predictions = model.eval_model(dev, macro_f1=macro_f1, weighted_f1=weighted_f1,
                                                                         accuracy=sklearn.metrics.accuracy_score)
 
-            dev_preds[:, i] = model_outputs
+            dev_preds[:, i] = result
 
         final_predictions = []
         for row in dev_preds:
@@ -74,7 +74,7 @@ if transformer_config["evaluate_during_training"]:
                                   use_cuda=torch.cuda.is_available(), args=transformer_config)
         result, model_outputs, wrong_predictions = model.eval_model(dev, macro_f1=macro_f1, weighted_f1=weighted_f1,
                                                                     accuracy=sklearn.metrics.accuracy_score)
-        dev['predictions'] = model_outputs
+        dev['predictions'] = result
 
 else:
     model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
@@ -82,7 +82,7 @@ else:
     model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
     result, model_outputs, wrong_predictions = model.eval_model(dev, macro_f1=macro_f1, weighted_f1=weighted_f1,
                                                                 accuracy=sklearn.metrics.accuracy_score)
-    dev['predictions'] = model_outputs
+    dev['predictions'] = result
 
 
 dev['predictions'] = decode(dev['predictions'])
