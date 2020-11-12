@@ -31,6 +31,8 @@ dev = dev[['text_a', 'text_b', 'labels']]
 train['labels'] = encode(train["labels"])
 dev['labels'] = encode(dev["labels"])
 
+dev_sentence_pairs = list(map(list, zip(dev['text_a'].to_list(), dev['text_b'].to_list())))
+
 if transformer_config["evaluate_during_training"]:
     if transformer_config["n_fold"] > 1:
         dev_preds = np.zeros((len(dev), transformer_config["n_fold"]))
@@ -51,10 +53,9 @@ if transformer_config["evaluate_during_training"]:
             model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
                                       use_cuda=torch.cuda.is_available(), args=transformer_config)
 
-            result, model_outputs, wrong_predictions = model.eval_model(dev, macro_f1=macro_f1, weighted_f1=weighted_f1,
-                                                                        accuracy=sklearn.metrics.accuracy_score)
+            predictions, raw_outputs = model.predict(dev_sentence_pairs)
 
-            dev_preds[:, i] = result
+            dev_preds[:, i] = predictions
 
         final_predictions = []
         for row in dev_preds:
@@ -72,17 +73,15 @@ if transformer_config["evaluate_during_training"]:
 
         model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
                                   use_cuda=torch.cuda.is_available(), args=transformer_config)
-        result, model_outputs, wrong_predictions = model.eval_model(dev, macro_f1=macro_f1, weighted_f1=weighted_f1,
-                                                                    accuracy=sklearn.metrics.accuracy_score)
-        dev['predictions'] = result
+        predictions, raw_outputs = model.predict(dev_sentence_pairs)
+        dev['predictions'] = predictions
 
 else:
     model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
                               args=transformer_config)
     model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
-    result, model_outputs, wrong_predictions = model.eval_model(dev, macro_f1=macro_f1, weighted_f1=weighted_f1,
-                                                                accuracy=sklearn.metrics.accuracy_score)
-    dev['predictions'] = result
+    predictions, raw_outputs = model.predict(dev_sentence_pairs)
+    dev['predictions'] = predictions
 
 
 dev['predictions'] = decode(dev['predictions'])
