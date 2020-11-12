@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from examples.common.evaluation import weighted_f1, macro_f1
-from examples.common.label_converter import decode
+from examples.common.label_converter import decode, encode
 from examples.common.print_stat import print_information
 from examples.common.reader import read_training_file
 from examples.monolingual.en_en.transformer_config import DATA_DIRECTORY, TEMP_DIRECTORY, \
@@ -28,6 +28,8 @@ train = train[['text_a', 'text_b', 'labels']]
 dev = dev.rename(columns={'sentence1': 'text_a', 'sentence2': 'text_b', 'tag': 'labels'}).dropna()
 dev = dev[['text_a', 'text_b', 'labels']]
 
+train['labels'] = encode(train["labels"])
+dev['labels'] = encode(dev["labels"])
 
 if transformer_config["evaluate_during_training"]:
     if transformer_config["n_fold"] > 1:
