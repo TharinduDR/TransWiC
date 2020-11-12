@@ -1,6 +1,5 @@
 import os
 import shutil
-import time
 
 import sklearn
 import torch
@@ -19,7 +18,13 @@ if not os.path.exists(TEMP_DIRECTORY):
     os.makedirs(TEMP_DIRECTORY)
 
 train = read_training_file(os.path.join(DATA_DIRECTORY, "training.en-en.data"), os.path.join(DATA_DIRECTORY, "training.en-en.gold"))
-dev = read_training_file(os.path.join(DATA_DIRECTORY, "trial.en-en.data"), os.path.join(DATA_DIRECTORY, "trial.en-en.gold"))
+dev = read_training_file(os.path.join(DATA_DIRECTORY, "dev.en-en.data"), os.path.join(DATA_DIRECTORY, "dev.en-en.gold"))
+
+train = train.rename(columns={'sentence1': 'text_a', 'sentence2': 'text_b', 'tag': 'labels'}).dropna()
+train = train[['text_a', 'text_b', 'labels']]
+
+dev = dev.rename(columns={'sentence1': 'text_a', 'sentence2': 'text_b', 'tag': 'labels'}).dropna()
+dev = dev[['text_a', 'text_b', 'labels']]
 
 
 if transformer_config["evaluate_during_training"]:
@@ -31,15 +36,19 @@ if transformer_config["evaluate_during_training"]:
                 shutil.rmtree(transformer_config['output_dir'])
 
             model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
-                               args=transformer_config)
-            train_df, eval_df = train_test_split(train, test_size=0.1, random_state=transformer_config['manual_seed'] * i)
+                                      args=transformer_config)
 
-            model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
+            train_df, eval_df = train_test_split(train, test_size=0.1,
+                                                 random_state=transformer_config['manual_seed'] * i)
+
+            model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
+                              accuracy=sklearn.metrics.accuracy_score)
 
             model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
-                               use_cuda=torch.cuda.is_available(), args=transformer_config)
+                                      use_cuda=torch.cuda.is_available(), args=transformer_config)
 
-            result, model_outputs, wrong_predictions = model.eval_model(dev, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
+            result, model_outputs, wrong_predictions = model.eval_model(dev, macro_f1=macro_f1, weighted_f1=weighted_f1,
+                                                                        accuracy=sklearn.metrics.accuracy_score)
 
             dev_preds[:, i] = model_outputs
 
@@ -50,18 +59,19 @@ if transformer_config["evaluate_during_training"]:
                            args=transformer_config)
         train_df, eval_df = train_test_split(train, test_size=0.1, random_state=transformer_config['manual_seed'])
 
-        start = time.time()
-        model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
-        end = time.time()
+        model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
+                          accuracy=sklearn.metrics.accuracy_score)
 
         model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
-                           use_cuda=torch.cuda.is_available(), args=transformer_config)
-        result, model_outputs, wrong_predictions = model.eval_model(dev, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
+                                  use_cuda=torch.cuda.is_available(), args=transformer_config)
+        result, model_outputs, wrong_predictions = model.eval_model(dev, macro_f1=macro_f1, weighted_f1=weighted_f1,
+                                                                    accuracy=sklearn.metrics.accuracy_score)
         dev['predictions'] = model_outputs
 
 else:
     model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
-                       args=transformer_config)
+                              args=transformer_config)
     model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
-    result, model_outputs, wrong_predictions = model.eval_model(dev, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
+    result, model_outputs, wrong_predictions = model.eval_model(dev, macro_f1=macro_f1, weighted_f1=weighted_f1,
+                                                                accuracy=sklearn.metrics.accuracy_score)
     dev['predictions'] = model_outputs
