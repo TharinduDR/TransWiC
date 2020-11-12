@@ -8,6 +8,8 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from examples.common.evaluation import weighted_f1, macro_f1
+from examples.common.label_converter import decode
+from examples.common.print_stat import print_information
 from examples.common.reader import read_training_file
 from examples.monolingual.en_en.transformer_config import DATA_DIRECTORY, TEMP_DIRECTORY, \
     transformer_config, MODEL_NAME, MODEL_TYPE
@@ -52,7 +54,11 @@ if transformer_config["evaluate_during_training"]:
 
             dev_preds[:, i] = model_outputs
 
-        dev['predictions'] = dev_preds.mean(axis=1)
+        final_predictions = []
+        for row in dev_preds:
+            row = row.tolist()
+            final_predictions.append(int(max(set(row), key=row.count)))
+        dev['predictions'] = final_predictions
 
     else:
         model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
@@ -75,3 +81,9 @@ else:
     result, model_outputs, wrong_predictions = model.eval_model(dev, macro_f1=macro_f1, weighted_f1=weighted_f1,
                                                                 accuracy=sklearn.metrics.accuracy_score)
     dev['predictions'] = model_outputs
+
+
+dev['predictions'] = decode(dev['predictions'])
+dev['labels'] = decode(dev['labels'])
+
+print_information(dev, "predictions", "labels")
