@@ -68,6 +68,7 @@ class ModelArgs:
     save_model_every_epoch: bool = True
     save_optimizer_and_scheduler: bool = True
     save_steps: int = 2000
+    save_recent_only: bool = True
     silent: bool = False
     tensorboard_dir: str = None
     thread_count: int = None

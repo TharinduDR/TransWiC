@@ -4,11 +4,13 @@
 
 from __future__ import absolute_import, division, print_function
 
+import glob
 import json
 import logging
 import math
 import os
 import random
+import shutil
 import warnings
 from dataclasses import asdict
 from multiprocessing import cpu_count
@@ -620,6 +622,10 @@ class MonoTransWiCModel:
                             )
 
                     if args.save_steps > 0 and global_step % args.save_steps == 0:
+                        if args.save_recent_only:
+                            del_paths = glob.glob(os.path.join(output_dir, 'checkpoint-*'))
+                            for del_path in del_paths:
+                                shutil.rmtree(del_path)
                         # Save model checkpoint
                         output_dir_current = os.path.join(output_dir, "checkpoint-{}".format(global_step))
 
@@ -641,6 +647,11 @@ class MonoTransWiCModel:
                             tb_writer.add_scalar("eval_{}".format(key), value, global_step)
 
                         output_dir_current = os.path.join(output_dir, "checkpoint-{}".format(global_step))
+
+                        if args.save_recent_only:
+                            del_paths = glob.glob(os.path.join(output_dir, 'checkpoint-*'))
+                            for del_path in del_paths:
+                                shutil.rmtree(del_path)
 
                         if args.save_eval_checkpoints:
                             self.save_model(output_dir_current, optimizer, scheduler, model=model, results=results)
@@ -730,6 +741,11 @@ class MonoTransWiCModel:
                     wandb_log=False,
                     **kwargs,
                 )
+
+                if args.save_recent_only:
+                    del_paths = glob.glob(os.path.join(output_dir, 'checkpoint-*'))
+                    for del_path in del_paths:
+                        shutil.rmtree(del_path)
 
                 self.save_model(output_dir_current, optimizer, scheduler, results=results)
 
