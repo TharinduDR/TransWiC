@@ -26,7 +26,6 @@ train = train.rename(columns={'sentence1': 'text_a', 'sentence2': 'text_b', 'tag
 train = train[['text_a', 'text_b', 'labels']]
 
 dev = dev.rename(columns={'sentence1': 'text_a', 'sentence2': 'text_b', 'tag': 'labels'}).dropna()
-dev = dev[['text_a', 'text_b', 'labels']]
 
 train['labels'] = encode(train["labels"])
 dev['labels'] = encode(dev["labels"])
@@ -87,4 +86,4 @@ else:
 dev['predictions'] = decode(dev['predictions'])
 dev['labels'] = decode(dev['labels'])
 
-print_information(dev, "predictions", "labels")
+print_information(dev, "predictions", "labels", "pos")
