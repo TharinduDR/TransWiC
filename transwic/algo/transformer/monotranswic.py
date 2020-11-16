@@ -288,8 +288,6 @@ class MonoTransWiCModel:
             self.model.transformer.resize_token_embeddings(len(self.tokenizer))
             self.model.transformer.embeddings.word_embeddings.weight[-1, :] = torch.zeros([self.model.transformer.config.hidden_size])
 
-
-
     def train_model(
         self,
         train_df,
