@@ -592,6 +592,7 @@ def get_image_transforms():
         ]
     )
 
+
 def sweep_config_to_sweep_values(sweep_config):
     """
     Converts an instance of wandb.Config to plain values map.

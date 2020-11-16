@@ -19,8 +19,8 @@ from transwic.algo.transformer.monotranswic import MonoTransWiCModel
 if not os.path.exists(TEMP_DIRECTORY):
     os.makedirs(TEMP_DIRECTORY)
 
-train = read_training_file(os.path.join(DATA_DIRECTORY, "training.en-en.data"), os.path.join(DATA_DIRECTORY, "training.en-en.gold"))
-dev = read_training_file(os.path.join(DATA_DIRECTORY, "dev.en-en.data"), os.path.join(DATA_DIRECTORY, "dev.en-en.gold"))
+train = read_training_file(os.path.join(DATA_DIRECTORY, "training.en-en.data"), os.path.join(DATA_DIRECTORY, "training.en-en.gold"), transformer_config)
+dev = read_training_file(os.path.join(DATA_DIRECTORY, "dev.en-en.data"), os.path.join(DATA_DIRECTORY, "dev.en-en.gold"), transformer_config)
 
 train = train.rename(columns={'sentence1': 'text_a', 'sentence2': 'text_b', 'tag': 'labels'}).dropna()
 train = train[['text_a', 'text_b', 'labels']]

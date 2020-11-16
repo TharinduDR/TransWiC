@@ -128,4 +128,8 @@ class MonoTransWiCArgs(ModelArgs):
     stride: float = 0.8
     tie_value: int = 1
 
+    tagging: bool = False
+    begin_tag: str = "<BEGIN>"
+    end_tag: str = "<END>"
+
 

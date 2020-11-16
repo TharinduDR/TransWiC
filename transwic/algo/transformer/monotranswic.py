@@ -269,6 +269,8 @@ class MonoTransWiCModel:
                 model_name, do_lower_case=self.args.do_lower_case, **kwargs
             )
 
+
+
         self.args.model_name = model_name
         self.args.model_type = model_type
 
@@ -282,6 +284,13 @@ class MonoTransWiCModel:
         if self.args.wandb_project and not wandb_available:
             warnings.warn("wandb_project specified but wandb is not available. Wandb disabled.")
             self.args.wandb_project = None
+
+        if self.args.tagging:
+            self.tokenizer.add_tokens([self.args.begin_tag])
+            self.model.resize_token_embeddings(len(self.tokenizer))
+            self.model.embeddings.word_embeddings.weight[-1, :] = torch.zeros([self.model.config.hidden_size])
+
+
 
     def train_model(
         self,
