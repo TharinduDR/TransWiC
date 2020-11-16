@@ -269,8 +269,6 @@ class MonoTransWiCModel:
                 model_name, do_lower_case=self.args.do_lower_case, **kwargs
             )
 
-
-
         self.args.model_name = model_name
         self.args.model_type = model_type
 
@@ -287,8 +285,8 @@ class MonoTransWiCModel:
 
         if self.args.tagging:
             self.tokenizer.add_tokens([self.args.begin_tag])
-            self.model.resize_token_embeddings(len(self.tokenizer))
-            self.model.embeddings.word_embeddings.weight[-1, :] = torch.zeros([self.model.config.hidden_size])
+            self.model.transformer.resize_token_embeddings(len(self.tokenizer))
+            self.model.transformer.embeddings.word_embeddings.weight[-1, :] = torch.zeros([self.model.transformer.config.hidden_size])
 
 
 
