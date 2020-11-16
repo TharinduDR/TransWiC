@@ -285,8 +285,7 @@ class MonoTransWiCModel:
 
         if self.args.tagging:
             self.tokenizer.add_tokens([self.args.begin_tag])
-            self.model.transformer.resize_token_embeddings(len(self.tokenizer))
-            self.model.transformer.embeddings.word_embeddings.weight[-1, :] = torch.zeros([self.model.transformer.config.hidden_size])
+            self.tokenizer.add_tokens([self.args.end_tag])
 
     def train_model(
         self,
