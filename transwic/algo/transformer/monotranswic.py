@@ -285,7 +285,8 @@ class MonoTransWiCModel:
 
         if self.args.tagging:
             self.tokenizer.add_tokens([self.args.begin_tag])
-            self.tokenizer.add_tokens([self.args.end_tag])
+            # self.tokenizer.add_tokens([self.args.end_tag])
+            self.model.resize_token_embeddings(len(self.tokenizer))
 
     def train_model(
         self,
