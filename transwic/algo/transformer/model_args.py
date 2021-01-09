@@ -133,5 +133,58 @@ class MonoTransWiCArgs(ModelArgs):
     end_tag: str = "<END>"
 
 
+@dataclass
+class LanguageModelingArgs(ModelArgs):
+    """
+    Model args for a LanguageModelingModel
+    """
+
+    model_class: str = "LanguageModelingModel"
+    block_size: int = -1
+    config_name: str = None
+    dataset_class: Dataset = None
+    dataset_type: str = "None"
+    discriminator_config: dict = field(default_factory=dict)
+    discriminator_loss_weight: float = 50.0
+    generator_config: dict = field(default_factory=dict)
+    max_steps: int = -1
+    min_frequency: int = 2
+    mlm: bool = True
+    mlm_probability: float = 0.15
+    sliding_window: bool = False
+    special_tokens: list = field(default_factory=get_special_tokens)
+    stride: float = 0.8
+    tie_generator_and_discriminator_embeddings: bool = True
+    tokenizer_name: str = None
+    vocab_size: int = None
+    clean_text: bool = True
+    handle_chinese_chars: bool = True
+    special_tokens_list: list = field(default_factory=list)
+    strip_accents: bool = True
+    local_rank: int = -1
+
+    def save(self, output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+        with open(os.path.join(output_dir, "model_args.json"), "w") as f:
+            args_dict = self.get_args_for_saving()
+            if args_dict["dataset_class"] is not None:
+                args_dict["dataset_class"] = type(args_dict["dataset_class"]).__name__
+            json.dump(self.get_args_for_saving(), f)
+
+    def load(self, input_dir):
+        if input_dir:
+            model_args_file = os.path.join(input_dir, "model_args.json")
+            if os.path.isfile(model_args_file):
+                with open(model_args_file, "r") as f:
+                    model_args = json.load(f)
+                if model_args["dataset_class"]:
+                    warnings.warn(
+                        "This model was trained using a custom dataset_class."
+                        "This cannot be loaded automatically and must be specified in the model args"
+                        "when loading the model."
+                    )
+                self.update_from_dict(model_args)
+
+
 
 
