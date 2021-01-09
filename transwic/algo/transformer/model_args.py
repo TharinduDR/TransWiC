@@ -163,6 +163,10 @@ class LanguageModelingArgs(ModelArgs):
     strip_accents: bool = True
     local_rank: int = -1
 
+    tagging: bool = False
+    begin_tag: str = "<BEGIN>"
+    end_tag: str = "<END>"
+
     def save(self, output_dir):
         os.makedirs(output_dir, exist_ok=True)
         with open(os.path.join(output_dir, "model_args.json"), "w") as f:
