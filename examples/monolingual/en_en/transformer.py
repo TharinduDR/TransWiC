@@ -12,7 +12,8 @@ from examples.common.label_converter import decode, encode
 from examples.common.print_stat import print_information
 from examples.common.reader import read_training_file
 from examples.monolingual.en_en.transformer_config import DATA_DIRECTORY, TEMP_DIRECTORY, \
-    transformer_config, MODEL_NAME, MODEL_TYPE
+    transformer_config, MODEL_NAME, MODEL_TYPE, language_modeling_args, LANGUAGE_FINETUNE
+from transwic.algo.transformer.language_modeling_model import LanguageModelingModel
 from transwic.algo.transformer.monotranswic import MonoTransWiCModel
 
 
@@ -31,6 +32,28 @@ train['labels'] = encode(train["labels"])
 dev['labels'] = encode(dev["labels"])
 
 dev_sentence_pairs = list(map(list, zip(dev['text_a'].to_list(), dev['text_b'].to_list())))
+
+
+if LANGUAGE_FINETUNE:
+    train_list = train['text_a'].tolist() + train['text_b'].tolist()
+    dev_list = dev['text_a'].tolist() + dev['text_b'].tolist()
+    complete_list = train_list + dev_list
+    lm_train = complete_list[0: int(len(complete_list)*0.8)]
+    lm_test = complete_list[-int(len(complete_list)*0.2):]
+
+    with open(os.path.join(TEMP_DIRECTORY, "lm_train.txt"), 'w') as f:
+        for item in lm_train:
+            f.write("%s\n" % item)
+
+    with open(os.path.join(TEMP_DIRECTORY, "lm_test.txt"), 'w') as f:
+        for item in lm_test:
+            f.write("%s\n" % item)
+
+    model = LanguageModelingModel(MODEL_TYPE, MODEL_NAME, args=language_modeling_args)
+    model.train_model(os.path.join(TEMP_DIRECTORY, "lm_train.txt"), eval_file=os.path.join(TEMP_DIRECTORY, "lm_test.txt"))
+    MODEL_NAME = language_modeling_args["best_model_dir"]
+
+
 
 if transformer_config["evaluate_during_training"]:
     if transformer_config["n_fold"] > 1:
