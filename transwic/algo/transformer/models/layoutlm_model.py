@@ -1,7 +1,6 @@
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss, MSELoss
-from transformers.modeling_bert import BertPreTrainedModel
-from transformers.modeling_layoutlm import LayoutLMModel
+from transformers import LayoutLMModel, BertPreTrainedModel
 
 
 class LayoutLMForSequenceClassification(BertPreTrainedModel):

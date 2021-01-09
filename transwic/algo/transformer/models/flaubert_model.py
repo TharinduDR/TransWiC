@@ -1,7 +1,5 @@
-import torch
-import torch.nn as nn
 from torch.nn import CrossEntropyLoss, MSELoss
-from transformers.modeling_flaubert import FlaubertModel
+from transformers import FlaubertModel
 from transformers.modeling_utils import SequenceSummary
 
 

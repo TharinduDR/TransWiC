@@ -1,5 +1,4 @@
-from transformers.configuration_camembert import CamembertConfig
-from transformers.modeling_camembert import CAMEMBERT_PRETRAINED_MODEL_ARCHIVE_LIST
+from transformers import CamembertConfig, CAMEMBERT_PRETRAINED_MODEL_ARCHIVE_LIST
 
 from transwic.algo.transformer.models.roberta_model import RobertaForSequenceClassification
 
