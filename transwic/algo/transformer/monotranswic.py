@@ -283,10 +283,10 @@ class MonoTransWiCModel:
             warnings.warn("wandb_project specified but wandb is not available. Wandb disabled.")
             self.args.wandb_project = None
 
-        if self.args.tagging:
-            self.tokenizer.add_tokens([self.args.begin_tag])
-            # self.tokenizer.add_tokens([self.args.end_tag])
-            self.model.transformer.resize_token_embeddings(len(self.tokenizer))
+        # if self.args.tagging:
+        #     self.tokenizer.add_tokens([self.args.begin_tag])
+        #     # self.tokenizer.add_tokens([self.args.end_tag])
+        #     self.model.transformer.resize_token_embeddings(len(self.tokenizer))
 
     def train_model(
         self,
