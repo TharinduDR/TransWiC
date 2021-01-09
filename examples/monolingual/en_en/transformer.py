@@ -54,7 +54,6 @@ if LANGUAGE_FINETUNE:
     MODEL_NAME = language_modeling_args["best_model_dir"]
 
 
-
 if transformer_config["evaluate_during_training"]:
     if transformer_config["n_fold"] > 1:
         dev_preds = np.zeros((len(dev), transformer_config["n_fold"]))
