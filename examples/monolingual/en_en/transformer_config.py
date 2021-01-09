@@ -69,7 +69,7 @@ transformer_config = {
     "local_rank": -1,
     "encoding": None,
 
-    "tagging": True,
+    "tagging": False,
     "begin_tag": "<BEGIN>",
     "end_tag": "<END>"
 }
