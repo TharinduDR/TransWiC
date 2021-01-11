@@ -38,7 +38,10 @@ class BertForSequenceClassification(BertPreTrainedModel):
 
         self.transformer = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.classifier = nn.Linear(config.hidden_size, self.config.num_labels)
+        if merge_type == "concat":
+            self.classifier = nn.Linear(config.hidden_size*2, self.config.num_labels)
+        else:
+            self.classifier = nn.Linear(config.hidden_size, self.config.num_labels)
         self.weight = weight
 
         self.init_weights()
@@ -66,7 +69,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
         # Complains if input_embeds is kept
 
         # if entity positions are given, get embeddings in the given positions
-        if entity_positions:
+        if entity_positions is not None:
             indices = [i for i in range(0, entity_positions.shape[0])]
             tensor_indices = torch.tensor(indices, dtype=torch.long)
 
@@ -108,3 +111,4 @@ class BertForSequenceClassification(BertPreTrainedModel):
             outputs = (loss,) + outputs
 
         return outputs  # (loss), logits, (hidden_states), (attentions)
+
