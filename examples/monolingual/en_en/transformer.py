@@ -63,7 +63,7 @@ if transformer_config["evaluate_during_training"]:
                 shutil.rmtree(transformer_config['output_dir'])
 
             model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
-                                      args=transformer_config)
+                                      args=transformer_config, merge_type=transformer_config['merge_type'])
 
             train_df, eval_df = train_test_split(train, test_size=0.1,
                                                  random_state=transformer_config['manual_seed'] * i)

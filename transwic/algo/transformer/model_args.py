@@ -131,6 +131,7 @@ class MonoTransWiCArgs(ModelArgs):
     tagging: bool = False
     begin_tag: str = "<BEGIN>"
     end_tag: str = "<END>"
+    special_tag: str = "<BEGIN>"
 
 
 @dataclass

@@ -80,11 +80,13 @@ class InputExample(object):
 class InputFeatures(object):
     """A single set of features of data."""
 
-    def __init__(self, input_ids, input_mask, segment_ids, label_id, bboxes=None):
+    def __init__(self, input_ids, input_mask, segment_ids, label_id, entity_positions=None, bboxes=None):
         self.input_ids = input_ids
         self.input_mask = input_mask
         self.segment_ids = segment_ids
         self.label_id = label_id
+        if entity_positions:
+            self.entity_positions = entity_positions
         if bboxes:
             self.bboxes = bboxes
 
@@ -116,6 +118,7 @@ def convert_example_to_feature(
         pad_token,
         add_prefix_space,
         pad_to_max_length,
+        special_entity_token,
     ) = example_row
 
     bboxes = []
@@ -232,13 +235,30 @@ def convert_example_to_feature(
     # if output_mode == "regression":
     #     label_id = float(example.label)
 
+    # Given a special entity token, find its position(s) in token ids
+    if special_entity_token:
+        if example.text_b:
+            length_entity_positions = 2
+        else:
+            length_entity_positions = 1
+
+        special_entity_token_id = tokenizer.convert_tokens_to_ids([special_entity_token])[0]
+        entity_positions = [i for i in range(len(input_ids)) if input_ids[i] == special_entity_token_id]
+        # handle if any special entity token is truncated
+        if len(entity_positions) != length_entity_positions:
+            return None
+    else:
+        entity_positions = None
+
     if bboxes:
         return InputFeatures(
-            input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids, label_id=example.label, bboxes=bboxes
+            input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids, label_id=example.label, bboxes=bboxes,
+            entity_positions=entity_positions
         )
     else:
         return InputFeatures(
             input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids, label_id=example.label,
+            entity_positions=entity_positions
         )
 
 
@@ -269,6 +289,7 @@ def convert_example_to_feature_sliding_window(
         pad_token,
         add_prefix_space,
         pad_to_max_length,
+        special_entity_token,
     ) = example_row
 
     if stride < 1:
@@ -338,6 +359,21 @@ def convert_example_to_feature_sliding_window(
             input_mask = input_mask + ([0 if mask_padding_with_zero else 1] * padding_length)
             segment_ids = segment_ids + ([pad_token_segment_id] * padding_length)
 
+        # Given a special entity token, find its position(s) in token ids
+        if special_entity_token:
+            if example.text_b:
+                length_entity_positions = 2
+            else:
+                length_entity_positions = 1
+
+            special_entity_token_id = tokenizer.convert_tokens_to_ids([special_entity_token])[0]
+            entity_positions = [i for i in range(len(input_ids)) if input_ids[i] == special_entity_token_id]
+            # handle if any special entity token is truncated
+            if len(entity_positions) != length_entity_positions:
+                return None
+        else:
+            entity_positions = None
+
         assert len(input_ids) == max_seq_length
         assert len(input_mask) == max_seq_length
         assert len(segment_ids) == max_seq_length
@@ -350,7 +386,8 @@ def convert_example_to_feature_sliding_window(
         #     raise KeyError(output_mode)
 
         input_features.append(
-            InputFeatures(input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids, label_id=example.label,)
+            InputFeatures(input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids, label_id=example.label,
+                          entity_positions=entity_positions)
         )
 
     return input_features
@@ -382,6 +419,7 @@ def convert_examples_to_features(
     add_prefix_space=False,
     pad_to_max_length=True,
     args=None,
+    special_entity_token=None,
 ):
     """ Loads a data file into a list of `InputBatch`s
         `cls_token_at_end` define the location of the CLS token:
@@ -408,6 +446,7 @@ def convert_examples_to_features(
             pad_token,
             add_prefix_space,
             pad_to_max_length,
+            special_entity_token
         )
         for example in examples
     ]
@@ -447,6 +486,8 @@ def convert_examples_to_features(
         else:
             features = [convert_example_to_feature(example) for example in tqdm(examples, disable=silent)]
 
+    # remove features which are not completely processed due to inconsistencies
+    features = [f for f in features if f is not None]
     return features
 
 

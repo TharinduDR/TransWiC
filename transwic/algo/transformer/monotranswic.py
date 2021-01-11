@@ -108,6 +108,7 @@ class MonoTransWiCModel:
         use_cuda=True,
         cuda_device=-1,
         onnx_execution_provider=None,
+        merge_type=None,
         **kwargs,
     ):
 
@@ -222,10 +223,12 @@ class MonoTransWiCModel:
             if not self.args.quantized_model:
                 if self.weight:
                     self.model = model_class.from_pretrained(
-                        model_name, config=self.config, weight=torch.Tensor(self.weight).to(self.device), **kwargs,
+                        model_name, config=self.config, weight=torch.Tensor(self.weight).to(self.device),
+                        merge_type=merge_type, **kwargs,
                     )
                 else:
-                    self.model = model_class.from_pretrained(model_name, config=self.config, **kwargs)
+                    self.model = model_class.from_pretrained(model_name, config=self.config, merge_type=merge_type,
+                                                             **kwargs)
             else:
                 quantized_weights = torch.load(os.path.join(model_name, "pytorch_model.bin"))
                 if self.weight:
@@ -234,9 +237,11 @@ class MonoTransWiCModel:
                         config=self.config,
                         state_dict=quantized_weights,
                         weight=torch.Tensor(self.weight).to(self.device),
+                        merge_type=merge_type,
                     )
                 else:
-                    self.model = model_class.from_pretrained(None, config=self.config, state_dict=quantized_weights)
+                    self.model = model_class.from_pretrained(None, config=self.config, merge_type=merge_type,
+                                                             state_dict=quantized_weights)
 
             if self.args.dynamic_quantize:
                 self.model = torch.quantization.quantize_dynamic(self.model, {torch.nn.Linear}, dtype=torch.qint8)
@@ -269,6 +274,10 @@ class MonoTransWiCModel:
                 model_name, do_lower_case=self.args.do_lower_case, **kwargs
             )
 
+        if self.args.tagging:
+            new_special_tokens_dict = {"additional_special_tokens": [self.args.begin_tag, self.args.end_tag]}
+            self.tokenizer.add_special_tokens(new_special_tokens_dict)
+            # new_token_id = self.tokenizer.convert_tokens_to_ids([self.args.begin_tag])[0]
         self.args.model_name = model_name
         self.args.model_type = model_type
 
@@ -386,7 +395,11 @@ class MonoTransWiCModel:
                     InputExample(i, text, None, label)
                     for i, (text, label) in enumerate(zip(train_df.iloc[:, 0], train_df.iloc[:, 1]))
                 ]
-            train_dataset = self.load_and_cache_examples(train_examples, verbose=verbose)
+            if self.args.tagging:
+                train_dataset = self.load_and_cache_examples(train_examples, verbose=verbose,
+                                                             special_entity_token=self.args.special_tag)
+            else:
+                train_dataset = self.load_and_cache_examples(train_examples, verbose=verbose)
         train_sampler = RandomSampler(train_dataset)
         train_dataloader = DataLoader(
             train_dataset,
@@ -921,13 +934,25 @@ class MonoTransWiCModel:
                 ]
 
             if args.sliding_window:
-                eval_dataset, window_counts = self.load_and_cache_examples(
-                    eval_examples, evaluate=True, verbose=verbose, silent=silent
-                )
+                if args.tagging:
+                    eval_dataset, window_counts = self.load_and_cache_examples(
+                        eval_examples, evaluate=True, verbose=verbose, silent=silent,
+                        special_entity_token=self.args.special_tag
+                    )
+                else:
+                    eval_dataset, window_counts = self.load_and_cache_examples(
+                        eval_examples, evaluate=True, verbose=verbose, silent=silent
+                    )
             else:
-                eval_dataset = self.load_and_cache_examples(
-                    eval_examples, evaluate=True, verbose=verbose, silent=silent
-                )
+                if args.tagging:
+                    eval_dataset = self.load_and_cache_examples(
+                        eval_examples, evaluate=True, verbose=verbose, silent=silent,
+                        special_entity_token=self.args.special_tag
+                    )
+                else:
+                    eval_dataset = self.load_and_cache_examples(
+                        eval_examples, evaluate=True, verbose=verbose, silent=silent
+                    )
         os.makedirs(eval_output_dir, exist_ok=True)
 
         eval_sampler = SequentialSampler(eval_dataset)
@@ -1049,7 +1074,8 @@ class MonoTransWiCModel:
         return results, model_outputs, wrong
 
     def load_and_cache_examples(
-        self, examples, evaluate=False, no_cache=False, multi_label=False, verbose=True, silent=False
+        self, examples, evaluate=False, no_cache=False, multi_label=False, verbose=True, silent=False,
+            special_entity_token=None
     ):
         """
         Converts a list of InputExample objects to a TensorDataset containing InputFeatures. Caches the InputFeatures.
@@ -1130,6 +1156,7 @@ class MonoTransWiCModel:
                 # avoid padding in case of single example/online inferencing to decrease execution time
                 pad_to_max_length=bool(len(examples) > 1),
                 args=args,
+                special_entity_token=special_entity_token,
             )
             if verbose and args.sliding_window:
                 logger.info(f" {len(features)} features created from {len(examples)} samples.")
@@ -1148,6 +1175,11 @@ class MonoTransWiCModel:
         all_input_mask = torch.tensor([f.input_mask for f in features], dtype=torch.long)
         all_segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
 
+        all_entity_positions = torch.empty(len(features))
+        if self.args.tagging:
+            all_entity_positions = torch.tensor([f.entity_positions for f in features], dtype=torch.long)
+
+        all_bboxes = torch.empty(len(features))
         if self.args.model_type == "layoutlm":
             all_bboxes = torch.tensor([f.bboxes for f in features], dtype=torch.long)
 
@@ -1155,11 +1187,24 @@ class MonoTransWiCModel:
             all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.long)
         elif output_mode == "regression":
             all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.float)
-
-        if self.args.model_type == "layoutlm":
-            dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_bboxes)
         else:
-            dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
+            raise KeyError("Unknown output_mode found.")
+
+        # if self.args.model_type == "layoutlm":
+        #     if self.args.tagging:
+        #         dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_bboxes,
+        #                                 all_entity_positions)
+        #     else:
+        #         dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_bboxes)
+        #
+        # else:
+        #     if self.args.tagging:
+        #         dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids,
+        #                                 all_entity_positions)
+        #     else:
+        #         dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
+        dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_bboxes,
+                                all_entity_positions)
 
         if args.sliding_window and evaluate:
             return dataset, window_counts
@@ -1285,16 +1330,28 @@ class MonoTransWiCModel:
                 else:
                     eval_examples = [InputExample(i, text, None, dummy_label) for i, text in enumerate(to_predict)]
             if args.sliding_window:
-                eval_dataset, window_counts = self.load_and_cache_examples(eval_examples, evaluate=True, no_cache=True)
+                if args.tagging:
+                    eval_dataset, window_counts = self.load_and_cache_examples(eval_examples, evaluate=True,
+                                                                               no_cache=True,
+                                                                               special_entity_token=self.args.special_tag)
+                else:
+                    eval_dataset, window_counts = self.load_and_cache_examples(eval_examples, evaluate=True,
+                                                                               no_cache=True)
                 preds = np.empty((len(eval_dataset), self.num_labels))
                 if multi_label:
                     out_label_ids = np.empty((len(eval_dataset), self.num_labels))
                 else:
                     out_label_ids = np.empty((len(eval_dataset)))
             else:
-                eval_dataset = self.load_and_cache_examples(
-                    eval_examples, evaluate=True, multi_label=multi_label, no_cache=True
-                )
+                if args.tagging:
+                    eval_dataset = self.load_and_cache_examples(
+                        eval_examples, evaluate=True, multi_label=multi_label, no_cache=True,
+                        special_entity_token=self.args.special_tag
+                    )
+                else:
+                    eval_dataset = self.load_and_cache_examples(
+                        eval_examples, evaluate=True, multi_label=multi_label, no_cache=True
+                    )
 
             eval_sampler = SequentialSampler(eval_dataset)
             eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
@@ -1494,6 +1551,8 @@ class MonoTransWiCModel:
 
         if self.args.model_type == "layoutlm":
             inputs["bbox"] = batch[4]
+        if self.args.tagging:
+            inputs["entity_positions"] = batch[5]
 
         return inputs
 

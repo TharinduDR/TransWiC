@@ -1,6 +1,7 @@
 from multiprocessing import cpu_count
 
 DATA_DIRECTORY = "examples/monolingual/en_en/data/"
+# DATA_DIRECTORY = "data/"
 TEMP_DIRECTORY = "temp/"
 
 MODEL_TYPE = "bert"
@@ -70,9 +71,11 @@ transformer_config = {
     "local_rank": -1,
     "encoding": None,
 
-    "tagging": False,
+    "tagging": True,
     "begin_tag": "<BEGIN>",
-    "end_tag": "<END>"
+    "end_tag": "<END>",
+    "special_tag": "<BEGIN>",  # Should be either begin_tag or end_tag
+    "merge_type": "concat"
 }
 
 language_modeling_args = {
