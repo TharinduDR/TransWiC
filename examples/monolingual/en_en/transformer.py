@@ -72,7 +72,8 @@ if transformer_config["evaluate_during_training"]:
                               accuracy=sklearn.metrics.accuracy_score)
 
             model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
-                                      use_cuda=torch.cuda.is_available(), args=transformer_config)
+                                      use_cuda=torch.cuda.is_available(), args=transformer_config,
+                                      merge_type=transformer_config['merge_type'])
 
             predictions, raw_outputs = model.predict(dev_sentence_pairs)
 
@@ -86,20 +87,21 @@ if transformer_config["evaluate_during_training"]:
 
     else:
         model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
-                           args=transformer_config)
+                           args=transformer_config, merge_type=transformer_config['merge_type'])
         train_df, eval_df = train_test_split(train, test_size=0.1, random_state=transformer_config['manual_seed'])
 
         model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
                           accuracy=sklearn.metrics.accuracy_score)
 
         model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
-                                  use_cuda=torch.cuda.is_available(), args=transformer_config)
+                                  use_cuda=torch.cuda.is_available(), args=transformer_config,
+                                  merge_type=transformer_config['merge_type'])
         predictions, raw_outputs = model.predict(dev_sentence_pairs)
         dev['predictions'] = predictions
 
 else:
     model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
-                              args=transformer_config)
+                              args=transformer_config, merge_type=transformer_config['merge_type'])
     model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
     predictions, raw_outputs = model.predict(dev_sentence_pairs)
     dev['predictions'] = predictions
