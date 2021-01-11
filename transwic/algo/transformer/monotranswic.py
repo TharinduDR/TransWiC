@@ -278,6 +278,15 @@ class MonoTransWiCModel:
             new_special_tokens_dict = {"additional_special_tokens": [self.args.begin_tag, self.args.end_tag]}
             self.tokenizer.add_special_tokens(new_special_tokens_dict)
             # new_token_id = self.tokenizer.convert_tokens_to_ids([self.args.begin_tag])[0]
+
+            embedding_size = self.model.transformer.embeddings.word_embeddings.weight.size(1)
+            new_embeddings = torch.FloatTensor(len(new_special_tokens_dict["additional_special_tokens"]),
+                                               embedding_size).uniform_(-0.1, 0.1)
+            new_embedding_weight = torch.cat((self.model.transformer.embeddings.word_embeddings.weight.data, new_embeddings), 0)
+            self.model.transformer.embeddings.word_embeddings.weight.data = new_embedding_weight
+            self.model.config.vocab_size = self.model.config.vocab_size + len(
+                new_special_tokens_dict["additional_special_tokens"])
+
         self.args.model_name = model_name
         self.args.model_type = model_type
 
