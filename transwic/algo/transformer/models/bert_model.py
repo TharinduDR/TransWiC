@@ -68,22 +68,30 @@ class BertForSequenceClassification(BertPreTrainedModel):
         )
         # Complains if input_embeds is kept
 
-        # if entity positions are given, get embeddings in the given positions
+        # if entity positions are given, get embeddings at the given positions
         if entity_positions is not None:
             indices = [i for i in range(0, entity_positions.shape[0])]
             tensor_indices = torch.tensor(indices, dtype=torch.long)
 
             # if there are more than 1 entity position, concatenate the embeddings
             if entity_positions.shape[1] > 1:
-                list_pooled_output = []
-                for i in range(0, entity_positions.shape[1]):
-                    temp_pooled_output = outputs[0][tensor_indices, entity_positions[:, i], :]
-                    list_pooled_output.append(temp_pooled_output)
                 if self.merge_type == "concat":
+                    list_pooled_output = []
+                    for i in range(0, entity_positions.shape[1]):
+                        temp_pooled_output = outputs[0][tensor_indices, entity_positions[:, i], :]
+                        list_pooled_output.append(temp_pooled_output)
                     pooled_output = torch.cat(list_pooled_output, 1)
-                # TODO - implement other merge types
-                else: # default - concatenation
-                    pooled_output = torch.cat(list_pooled_output, 1)
+
+                elif self.merge_type == "add" or self.merge_type == "avg":
+                    pooled_output = outputs[0][tensor_indices, entity_positions[:, 0], :]
+                    for i in range(1, entity_positions.shape[1]):
+                        temp_pooled_output = outputs[0][tensor_indices, entity_positions[:, i], :]
+                        pooled_output = pooled_output.add(temp_pooled_output)
+                    if self.merge_type == "avg":
+                        pooled_output = torch.div(pooled_output, entity_positions.shape[1])
+
+                else:  # default - embedding at 1st entity position
+                    pooled_output = outputs[0][tensor_indices, entity_positions[:, 0], :]
             else:
                 pooled_output = outputs[0][tensor_indices, entity_positions[:, 0], :]
 

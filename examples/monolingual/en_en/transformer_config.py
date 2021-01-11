@@ -75,7 +75,7 @@ transformer_config = {
     "begin_tag": "<BEGIN>",
     "end_tag": "<END>",
     "special_tag": "<BEGIN>",  # Should be either begin_tag or end_tag
-    "merge_type": "concat"
+    "merge_type": "concat"  # "add", "avg"
 }
 
 language_modeling_args = {
