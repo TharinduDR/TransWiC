@@ -23,6 +23,7 @@ def get_special_tokens():
 @dataclass
 class ModelArgs:
     adam_epsilon: float = 1e-8
+    begin_tag:str = "<begin"
     best_model_dir: str = "outputs/best_model"
     cache_dir: str = "cache_dir/"
     config: dict = field(default_factory=dict)
@@ -37,6 +38,7 @@ class ModelArgs:
     early_stopping_metric_minimize: bool = True
     early_stopping_patience: int = 3
     encoding: str = None
+    end_tag: str = "<end>"
     eval_batch_size: int = 8
     evaluate_during_training: bool = False
     evaluate_during_training_silent: bool = True
@@ -70,6 +72,7 @@ class ModelArgs:
     save_steps: int = 2000
     save_recent_only: bool = True
     silent: bool = False
+    tagging: bool = True
     tensorboard_dir: str = None
     thread_count: int = None
     train_batch_size: int = 8

@@ -63,6 +63,10 @@ transformer_config = {
     "early_stopping_metric_minimize": True,
     "early_stopping_consider_epochs": False,
 
+    "tagging": True,
+    "begin_tag": "<begin>",
+    "end_tag": "<end>",
+
     "manual_seed": 777,
 
     "config": {},
