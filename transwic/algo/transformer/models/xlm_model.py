@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss, MSELoss
-from transformers.modeling_xlm import SequenceSummary, XLMModel, XLMPreTrainedModel
+from transformers import XLMModel
+from transformers.modeling_utils import SequenceSummary
 
 
 class XLMForSequenceClassification(XLMPreTrainedModel):
