@@ -241,7 +241,6 @@ def convert_example_to_feature(
         entity_positions = [i for i in range(len(input_ids)) if input_ids[i] == special_entity_token_id]
         # handle if any special entity token is truncated
         if len(entity_positions) != length_entity_positions:
-            print('issue')
             return None
     else:
         entity_positions = None

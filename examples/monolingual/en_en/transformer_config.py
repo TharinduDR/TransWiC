@@ -68,7 +68,7 @@ transformer_config = {
     "begin_tag": "<begin>",
     "end_tag": "<end>",
     "special_tag": "<begin>",  # Should be either begin_tag or end_tag
-    "merge_type": "concat",
+    "merge_type": "concat", # "add", "avg"
 
     "manual_seed": 777,
 
