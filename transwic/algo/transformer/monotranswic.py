@@ -5,35 +5,29 @@
 from __future__ import absolute_import, division, print_function
 
 import glob
-import json
 import logging
 import math
 import os
 import random
 import shutil
+import tempfile
 import warnings
 from dataclasses import asdict
-from multiprocessing import cpu_count
-import tempfile
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import torch
-from scipy.stats import mode, pearsonr
+from scipy.stats import mode
 from sklearn.metrics import (
     confusion_matrix,
     label_ranking_average_precision_score,
     matthews_corrcoef,
-    mean_squared_error,
 )
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
-from torch.utils.data.distributed import DistributedSampler
 from tqdm.auto import tqdm, trange
-from tqdm.contrib import tenumerate
 from transformers import (
-    WEIGHTS_NAME,
     AdamW,
     AlbertConfig,
     AlbertTokenizer,
@@ -86,7 +80,6 @@ from transwic.algo.transformer.utils import (
     convert_examples_to_features, sweep_config_to_sweep_values,
 )
 
-
 try:
     import wandb
 
@@ -99,16 +92,17 @@ logger = logging.getLogger(__name__)
 
 class MonoTransWiCModel:
     def __init__(
-        self,
-        model_type,
-        model_name,
-        num_labels=None,
-        weight=None,
-        args=None,
-        use_cuda=True,
-        cuda_device=-1,
-        onnx_execution_provider=None,
-        **kwargs,
+            self,
+            model_type,
+            model_name,
+            num_labels=None,
+            weight=None,
+            args=None,
+            use_cuda=True,
+            cuda_device=-1,
+            onnx_execution_provider=None,
+            merge_type=None,
+            **kwargs,
     ):
 
         """
@@ -222,10 +216,12 @@ class MonoTransWiCModel:
             if not self.args.quantized_model:
                 if self.weight:
                     self.model = model_class.from_pretrained(
-                        model_name, config=self.config, weight=torch.Tensor(self.weight).to(self.device), **kwargs,
+                        model_name, config=self.config, weight=torch.Tensor(self.weight).to(self.device),
+                        merge_type=merge_type, **kwargs,
                     )
                 else:
-                    self.model = model_class.from_pretrained(model_name, config=self.config, **kwargs)
+                    self.model = model_class.from_pretrained(model_name, config=self.config, merge_type=merge_type,
+                                                             **kwargs)
             else:
                 quantized_weights = torch.load(os.path.join(model_name, "pytorch_model.bin"))
                 if self.weight:
@@ -234,9 +230,11 @@ class MonoTransWiCModel:
                         config=self.config,
                         state_dict=quantized_weights,
                         weight=torch.Tensor(self.weight).to(self.device),
+                        merge_type=merge_type,
                     )
                 else:
-                    self.model = model_class.from_pretrained(None, config=self.config, state_dict=quantized_weights)
+                    self.model = model_class.from_pretrained(None, config=self.config, merge_type=merge_type,
+                                                             state_dict=quantized_weights)
 
             if self.args.dynamic_quantize:
                 self.model = torch.quantization.quantize_dynamic(self.model, {torch.nn.Linear}, dtype=torch.qint8)
@@ -301,15 +299,15 @@ class MonoTransWiCModel:
             self.args.wandb_project = None
 
     def train_model(
-        self,
-        train_df,
-        multi_label=False,
-        output_dir=None,
-        show_running_loss=True,
-        args=None,
-        eval_df=None,
-        verbose=True,
-        **kwargs,
+            self,
+            train_df,
+            multi_label=False,
+            output_dir=None,
+            show_running_loss=True,
+            args=None,
+            eval_df=None,
+            verbose=True,
+            **kwargs,
     ):
         """
         Trains the model using 'train_df'
@@ -398,7 +396,12 @@ class MonoTransWiCModel:
                     InputExample(i, text, None, label)
                     for i, (text, label) in enumerate(zip(train_df.iloc[:, 0], train_df.iloc[:, 1]))
                 ]
-            train_dataset = self.load_and_cache_examples(train_examples, verbose=verbose)
+            if self.args.tagging:
+                train_dataset = self.load_and_cache_examples(train_examples, verbose=verbose,
+                                                             special_entity_token=self.args.special_tag)
+            else:
+                train_dataset = self.load_and_cache_examples(train_examples, verbose=verbose)
+
         train_sampler = RandomSampler(train_dataset)
         train_dataloader = DataLoader(
             train_dataset,
@@ -431,14 +434,14 @@ class MonoTransWiCModel:
         return global_step, training_details
 
     def train(
-        self,
-        train_dataloader,
-        output_dir,
-        multi_label=False,
-        show_running_loss=True,
-        eval_df=None,
-        verbose=True,
-        **kwargs,
+            self,
+            train_dataloader,
+            output_dir,
+            multi_label=False,
+            show_running_loss=True,
+            eval_df=None,
+            verbose=True,
+            **kwargs,
     ):
         """
         Trains the model on train_dataset.
@@ -541,7 +544,7 @@ class MonoTransWiCModel:
                 global_step = int(checkpoint_suffix)
                 epochs_trained = global_step // (len(train_dataloader) // args.gradient_accumulation_steps)
                 steps_trained_in_current_epoch = global_step % (
-                    len(train_dataloader) // args.gradient_accumulation_steps
+                        len(train_dataloader) // args.gradient_accumulation_steps
                 )
 
                 logger.info("   Continuing training from checkpoint, will skip to saved global_step")
@@ -649,8 +652,8 @@ class MonoTransWiCModel:
                         self.save_model(output_dir_current, optimizer, scheduler, model=model)
 
                     if args.evaluate_during_training and (
-                        args.evaluate_during_training_steps > 0
-                        and global_step % args.evaluate_during_training_steps == 0
+                            args.evaluate_during_training_steps > 0
+                            and global_step % args.evaluate_during_training_steps == 0
                     ):
                         # Only evaluate when single GPU otherwise metrics may not average well
                         results, _, _ = self.eval_model(
@@ -834,7 +837,7 @@ class MonoTransWiCModel:
         )
 
     def eval_model(
-        self, eval_df, multi_label=False, output_dir=None, verbose=True, silent=False, wandb_log=True, **kwargs
+            self, eval_df, multi_label=False, output_dir=None, verbose=True, silent=False, wandb_log=True, **kwargs
     ):
         """
         Evaluates the model on eval_df. Saves results to output_dir.
@@ -871,7 +874,8 @@ class MonoTransWiCModel:
         return result, model_outputs, wrong_preds
 
     def evaluate(
-        self, eval_df, output_dir, multi_label=False, prefix="", verbose=True, silent=False, wandb_log=True, **kwargs
+            self, eval_df, output_dir, multi_label=False, prefix="", verbose=True, silent=False, wandb_log=True,
+            **kwargs
     ):
         """
         Evaluates the model on eval_df.
@@ -933,13 +937,25 @@ class MonoTransWiCModel:
                 ]
 
             if args.sliding_window:
-                eval_dataset, window_counts = self.load_and_cache_examples(
-                    eval_examples, evaluate=True, verbose=verbose, silent=silent
-                )
+                if args.tagging:
+                    eval_dataset, window_counts = self.load_and_cache_examples(
+                        eval_examples, evaluate=True, verbose=verbose, silent=silent,
+                        special_entity_token=self.args.special_tag
+                    )
+                else:
+                    eval_dataset, window_counts = self.load_and_cache_examples(
+                        eval_examples, evaluate=True, verbose=verbose, silent=silent
+                    )
             else:
-                eval_dataset = self.load_and_cache_examples(
-                    eval_examples, evaluate=True, verbose=verbose, silent=silent
-                )
+                if args.tagging:
+                    eval_dataset = self.load_and_cache_examples(
+                        eval_examples, evaluate=True, verbose=verbose, silent=silent,
+                        special_entity_token=self.args.special_tag
+                    )
+                else:
+                    eval_dataset = self.load_and_cache_examples(
+                        eval_examples, evaluate=True, verbose=verbose, silent=silent
+                    )
         os.makedirs(eval_output_dir, exist_ok=True)
 
         eval_sampler = SequentialSampler(eval_dataset)
@@ -1004,7 +1020,7 @@ class MonoTransWiCModel:
                 window_ranges.append([count, count + n_windows])
                 count += n_windows
 
-            preds = [preds[window_range[0] : window_range[1]] for window_range in window_ranges]
+            preds = [preds[window_range[0]: window_range[1]] for window_range in window_ranges]
             out_label_ids = [
                 out_label_ids[i] for i in range(len(out_label_ids)) if i in [window[0] for window in window_ranges]
             ]
@@ -1061,7 +1077,8 @@ class MonoTransWiCModel:
         return results, model_outputs, wrong
 
     def load_and_cache_examples(
-        self, examples, evaluate=False, no_cache=False, multi_label=False, verbose=True, silent=False
+            self, examples, evaluate=False, no_cache=False, multi_label=False, verbose=True, silent=False,
+            special_entity_token=None
     ):
         """
         Converts a list of InputExample objects to a TensorDataset containing InputFeatures. Caches the InputFeatures.
@@ -1094,8 +1111,8 @@ class MonoTransWiCModel:
         )
 
         if os.path.exists(cached_features_file) and (
-            (not args.reprocess_input_data and not no_cache)
-            or (mode == "dev" and args.use_cached_eval_features and not no_cache)
+                (not args.reprocess_input_data and not no_cache)
+                or (mode == "dev" and args.use_cached_eval_features and not no_cache)
         ):
             features = torch.load(cached_features_file)
             if verbose:
@@ -1142,6 +1159,7 @@ class MonoTransWiCModel:
                 # avoid padding in case of single example/online inferencing to decrease execution time
                 pad_to_max_length=bool(len(examples) > 1),
                 args=args,
+                special_entity_token=special_entity_token,
             )
             if verbose and args.sliding_window:
                 logger.info(f" {len(features)} features created from {len(examples)} samples.")
@@ -1160,6 +1178,11 @@ class MonoTransWiCModel:
         all_input_mask = torch.tensor([f.input_mask for f in features], dtype=torch.long)
         all_segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
 
+        all_entity_positions = torch.empty(len(features))
+        if self.args.tagging:
+            all_entity_positions = torch.tensor([f.entity_positions for f in features], dtype=torch.long)
+
+        all_bboxes = torch.empty(len(features))
         if self.args.model_type == "layoutlm":
             all_bboxes = torch.tensor([f.bboxes for f in features], dtype=torch.long)
 
@@ -1167,11 +1190,15 @@ class MonoTransWiCModel:
             all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.long)
         elif output_mode == "regression":
             all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.float)
-
-        if self.args.model_type == "layoutlm":
-            dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_bboxes)
         else:
-            dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
+            raise KeyError("Unknown output_mode found.")
+
+        # if self.args.model_type == "layoutlm":
+        #     dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_bboxes)
+        # else:
+        #     dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
+        dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_bboxes,
+                                all_entity_positions)
 
         if args.sliding_window and evaluate:
             return dataset, window_counts
@@ -1253,7 +1280,7 @@ class MonoTransWiCModel:
             )
 
             for i, (input_ids, attention_mask) in enumerate(
-                zip(model_inputs["input_ids"], model_inputs["attention_mask"])
+                    zip(model_inputs["input_ids"], model_inputs["attention_mask"])
             ):
                 input_ids = input_ids.unsqueeze(0).detach().cpu().numpy()
                 attention_mask = attention_mask.unsqueeze(0).detach().cpu().numpy()
@@ -1297,16 +1324,29 @@ class MonoTransWiCModel:
                 else:
                     eval_examples = [InputExample(i, text, None, dummy_label) for i, text in enumerate(to_predict)]
             if args.sliding_window:
-                eval_dataset, window_counts = self.load_and_cache_examples(eval_examples, evaluate=True, no_cache=True)
+                if args.tagging:
+                    eval_dataset, window_counts = self.load_and_cache_examples(eval_examples, evaluate=True,
+                                                                               no_cache=True,
+                                                                               special_entity_token=self.args.special_tag)
+                else:
+                    eval_dataset, window_counts = self.load_and_cache_examples(eval_examples, evaluate=True,
+                                                                               no_cache=True)
+
                 preds = np.empty((len(eval_dataset), self.num_labels))
                 if multi_label:
                     out_label_ids = np.empty((len(eval_dataset), self.num_labels))
                 else:
                     out_label_ids = np.empty((len(eval_dataset)))
             else:
-                eval_dataset = self.load_and_cache_examples(
-                    eval_examples, evaluate=True, multi_label=multi_label, no_cache=True
-                )
+                if args.tagging:
+                    eval_dataset = self.load_and_cache_examples(
+                        eval_examples, evaluate=True, multi_label=multi_label, no_cache=True,
+                        special_entity_token=self.args.special_tag
+                    )
+                else:
+                    eval_dataset = self.load_and_cache_examples(
+                        eval_examples, evaluate=True, multi_label=multi_label, no_cache=True
+                    )
 
             eval_sampler = SequentialSampler(eval_dataset)
             eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
@@ -1406,7 +1446,7 @@ class MonoTransWiCModel:
                     window_ranges.append([count, count + n_windows])
                     count += n_windows
 
-                preds = [preds[window_range[0] : window_range[1]] for window_range in window_ranges]
+                preds = [preds[window_range[0]: window_range[1]] for window_range in window_ranges]
 
                 model_outputs = preds
 
@@ -1506,6 +1546,8 @@ class MonoTransWiCModel:
 
         if self.args.model_type == "layoutlm":
             inputs["bbox"] = batch[4]
+        if self.args.tagging:
+            inputs["entity_positions"] = batch[5]
 
         return inputs
 
