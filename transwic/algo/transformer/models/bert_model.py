@@ -32,16 +32,21 @@ class BertForSequenceClassification(BertPreTrainedModel):
         loss, logits = outputs[:2]
     """  # noqa: ignore flake8"
 
-    def __init__(self, config, weight=None):
+    def __init__(self, config, weight=None, merge_type=None):
         super(BertForSequenceClassification, self).__init__(config)
         self.num_labels = config.num_labels
 
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.classifier = nn.Linear(config.hidden_size, self.config.num_labels)
+
+        if merge_type == "concat":
+            self.classifier = nn.Linear(config.hidden_size*2, self.config.num_labels)
+        else:
+            self.classifier = nn.Linear(config.hidden_size, self.config.num_labels)
         self.weight = weight
 
         self.init_weights()
+        self.merge_type = merge_type
 
     def forward(
         self,
@@ -52,6 +57,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
         head_mask=None,
         inputs_embeds=None,
         labels=None,
+        entity_positions=None
     ):
 
         outputs = self.bert(
@@ -63,7 +69,40 @@ class BertForSequenceClassification(BertPreTrainedModel):
         )
         # Complains if input_embeds is kept
 
-        pooled_output = outputs[1]
+        # if entity positions are given, get embeddings at the given positions
+        if entity_positions is not None:
+            indices = [i for i in range(0, entity_positions.shape[0])]
+            tensor_indices = torch.tensor(indices, dtype=torch.long)
+
+            # if there are more than 1 entity position, concatenate the embeddings
+            if entity_positions.shape[1] > 1:
+                if self.merge_type == "concat":
+                    list_pooled_output = []
+                    for i in range(0, entity_positions.shape[1]):
+                        temp_pooled_output = outputs[0][tensor_indices, entity_positions[:, i], :]
+                        list_pooled_output.append(temp_pooled_output)
+                    pooled_output = torch.cat(list_pooled_output, 1)
+
+                elif self.merge_type == "add" or self.merge_type == "avg":
+                    pooled_output = outputs[0][tensor_indices, entity_positions[:, 0], :]
+                    for i in range(1, entity_positions.shape[1]):
+                        temp_pooled_output = outputs[0][tensor_indices, entity_positions[:, i], :]
+                        pooled_output = pooled_output.add(temp_pooled_output)
+                    if self.merge_type == "avg":
+                        pooled_output = torch.div(pooled_output, entity_positions.shape[1])
+
+                else:  # default - embedding at 1st entity position
+                    pooled_output = outputs[0][tensor_indices, entity_positions[:, 0], :]
+            else:
+                pooled_output = outputs[0][tensor_indices, entity_positions[:, 0], :]
+
+            # pooled_output1 = outputs[0][tensor_indices, entity_positions[:, 0], :]
+            # pooled_output2 = outputs[0][tensor_indices, entity_positions[:, 1], :]
+            # pooled_output = torch.cat((pooled_output1, pooled_output2), 1)
+
+        # if no entity positions are given, get the embedding of CLS token
+        else:
+            pooled_output = outputs[1]
 
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
