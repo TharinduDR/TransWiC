@@ -113,7 +113,7 @@ def convert_example_to_feature(
         pad_token,
         add_prefix_space,
         pad_to_max_length,
-        special_entity_token,
+        special_entity_tokens,
     ) = example_row
 
     bboxes = []
@@ -231,14 +231,22 @@ def convert_example_to_feature(
     #     label_id = float(example.label)
 
     # Given a special entity token, find its position(s) in token ids
-    if special_entity_token:
+    if special_entity_tokens:
         if example.text_b:
-            length_entity_positions = 2
+            length_entity_positions = 2 * len(special_entity_tokens)
         else:
-            length_entity_positions = 1
+            length_entity_positions = len(special_entity_tokens)
 
-        special_entity_token_id = tokenizer.convert_tokens_to_ids([special_entity_token])[0]
-        entity_positions = [i for i in range(len(input_ids)) if input_ids[i] == special_entity_token_id]
+        special_entity_token_ids = []
+        for token in special_entity_tokens:
+            special_entity_token_ids.append(tokenizer.convert_tokens_to_ids([token])[0])
+        entity_positions = []
+        for id in special_entity_token_ids:
+            entity_positions = entity_positions + [i for i in range(len(input_ids)) if input_ids[i] == id]
+        entity_positions.sort()
+
+        # special_entity_token_id = tokenizer.convert_tokens_to_ids([special_entity_token])[0]
+        # entity_positions = [i for i in range(len(input_ids)) if input_ids[i] == special_entity_token_id]
         # handle if any special entity token is truncated
         if len(entity_positions) != length_entity_positions:
             return None
@@ -284,7 +292,7 @@ def convert_example_to_feature_sliding_window(
         pad_token,
         add_prefix_space,
         pad_to_max_length,
-        special_entity_token,
+        special_entity_tokens,
     ) = example_row
 
     if stride < 1:
@@ -355,14 +363,22 @@ def convert_example_to_feature_sliding_window(
             segment_ids = segment_ids + ([pad_token_segment_id] * padding_length)
 
         # Given a special entity token, find its position(s) in token ids
-        if special_entity_token:
+        if special_entity_tokens:
             if example.text_b:
-                length_entity_positions = 2
+                length_entity_positions = 2 * len(special_entity_tokens)
             else:
-                length_entity_positions = 1
+                length_entity_positions = len(special_entity_tokens)
 
-            special_entity_token_id = tokenizer.convert_tokens_to_ids([special_entity_token])[0]
-            entity_positions = [i for i in range(len(input_ids)) if input_ids[i] == special_entity_token_id]
+            special_entity_token_ids = []
+            for token in special_entity_tokens:
+                special_entity_token_ids.append(tokenizer.convert_tokens_to_ids([token])[0])
+            entity_positions = []
+            for id in special_entity_token_ids:
+                entity_positions = entity_positions + [i for i in range(len(input_ids)) if input_ids[i] == id]
+            entity_positions.sort()
+
+            # special_entity_token_id = tokenizer.convert_tokens_to_ids([special_entity_token])[0]
+            # entity_positions = [i for i in range(len(input_ids)) if input_ids[i] == special_entity_token_id]
             # handle if any special entity token is truncated
             if len(entity_positions) != length_entity_positions:
                 return None
@@ -414,7 +430,7 @@ def convert_examples_to_features(
     add_prefix_space=False,
     pad_to_max_length=True,
     args=None,
-    special_entity_token=None,
+    special_entity_tokens=None,
 ):
     """ Loads a data file into a list of `InputBatch`s
         `cls_token_at_end` define the location of the CLS token:
@@ -441,7 +457,7 @@ def convert_examples_to_features(
             pad_token,
             add_prefix_space,
             pad_to_max_length,
-            special_entity_token
+            special_entity_tokens,
         )
         for example in examples
     ]

@@ -86,7 +86,8 @@ class ModelArgs:
     warmup_steps: int = 0
     weight_decay: int = 0
     skip_special_tokens: bool = True
-    special_tag: str = "<begin>"
+    special_tags: list = None
+    merge_n: int = 1
 
     def update_from_dict(self, new_values):
         if isinstance(new_values, dict):

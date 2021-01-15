@@ -102,6 +102,7 @@ class MonoTransWiCModel:
             cuda_device=-1,
             onnx_execution_provider=None,
             merge_type=None,
+            merge_n=1,
             **kwargs,
     ):
 
@@ -217,11 +218,11 @@ class MonoTransWiCModel:
                 if self.weight:
                     self.model = model_class.from_pretrained(
                         model_name, config=self.config, weight=torch.Tensor(self.weight).to(self.device),
-                        merge_type=merge_type, **kwargs,
+                        merge_type=merge_type, merge_n=merge_n, **kwargs,
                     )
                 else:
                     self.model = model_class.from_pretrained(model_name, config=self.config, merge_type=merge_type,
-                                                             **kwargs)
+                                                             merge_n = merge_n, **kwargs)
             else:
                 quantized_weights = torch.load(os.path.join(model_name, "pytorch_model.bin"))
                 if self.weight:
@@ -231,10 +232,11 @@ class MonoTransWiCModel:
                         state_dict=quantized_weights,
                         weight=torch.Tensor(self.weight).to(self.device),
                         merge_type=merge_type,
+                        merge_n = merge_n
                     )
                 else:
                     self.model = model_class.from_pretrained(None, config=self.config, merge_type=merge_type,
-                                                             state_dict=quantized_weights)
+                                                             merge_n = merge_n, state_dict=quantized_weights)
 
             if self.args.dynamic_quantize:
                 self.model = torch.quantization.quantize_dynamic(self.model, {torch.nn.Linear}, dtype=torch.qint8)
@@ -398,7 +400,7 @@ class MonoTransWiCModel:
                 ]
             if self.args.tagging:
                 train_dataset = self.load_and_cache_examples(train_examples, verbose=verbose,
-                                                             special_entity_token=self.args.special_tag)
+                                                             special_entity_tokens=self.args.special_tags)
             else:
                 train_dataset = self.load_and_cache_examples(train_examples, verbose=verbose)
 
@@ -940,7 +942,7 @@ class MonoTransWiCModel:
                 if args.tagging:
                     eval_dataset, window_counts = self.load_and_cache_examples(
                         eval_examples, evaluate=True, verbose=verbose, silent=silent,
-                        special_entity_token=self.args.special_tag
+                        special_entity_tokens=self.args.special_tags
                     )
                 else:
                     eval_dataset, window_counts = self.load_and_cache_examples(
@@ -950,7 +952,7 @@ class MonoTransWiCModel:
                 if args.tagging:
                     eval_dataset = self.load_and_cache_examples(
                         eval_examples, evaluate=True, verbose=verbose, silent=silent,
-                        special_entity_token=self.args.special_tag
+                        special_entity_tokens=self.args.special_tags
                     )
                 else:
                     eval_dataset = self.load_and_cache_examples(
@@ -1078,7 +1080,7 @@ class MonoTransWiCModel:
 
     def load_and_cache_examples(
             self, examples, evaluate=False, no_cache=False, multi_label=False, verbose=True, silent=False,
-            special_entity_token=None
+            special_entity_tokens=None
     ):
         """
         Converts a list of InputExample objects to a TensorDataset containing InputFeatures. Caches the InputFeatures.
@@ -1159,7 +1161,7 @@ class MonoTransWiCModel:
                 # avoid padding in case of single example/online inferencing to decrease execution time
                 pad_to_max_length=bool(len(examples) > 1),
                 args=args,
-                special_entity_token=special_entity_token,
+                special_entity_tokens=special_entity_tokens,
             )
             if verbose and args.sliding_window:
                 logger.info(f" {len(features)} features created from {len(examples)} samples.")
@@ -1327,7 +1329,7 @@ class MonoTransWiCModel:
                 if args.tagging:
                     eval_dataset, window_counts = self.load_and_cache_examples(eval_examples, evaluate=True,
                                                                                no_cache=True,
-                                                                               special_entity_token=self.args.special_tag)
+                                                                               special_entity_tokens=self.args.special_tags)
                 else:
                     eval_dataset, window_counts = self.load_and_cache_examples(eval_examples, evaluate=True,
                                                                                no_cache=True)
@@ -1341,7 +1343,7 @@ class MonoTransWiCModel:
                 if args.tagging:
                     eval_dataset = self.load_and_cache_examples(
                         eval_examples, evaluate=True, multi_label=multi_label, no_cache=True,
-                        special_entity_token=self.args.special_tag
+                        special_entity_tokens=self.args.special_tags
                     )
                 else:
                     eval_dataset = self.load_and_cache_examples(
