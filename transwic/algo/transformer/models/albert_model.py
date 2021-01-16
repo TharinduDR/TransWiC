@@ -35,7 +35,7 @@ class AlbertForSequenceClassification(AlbertPreTrainedModel):
     def __init__(self, config, weight=None):
         super(AlbertForSequenceClassification, self).__init__(config)
         self.num_labels = config.num_labels
-        self.albert = AlbertModel(config)
+        self.transformer = AlbertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.classifier = nn.Linear(config.hidden_size, self.config.num_labels)
         self.weight = weight
@@ -53,7 +53,7 @@ class AlbertForSequenceClassification(AlbertPreTrainedModel):
         labels=None,
     ):
 
-        outputs = self.albert(
+        outputs = self.transformer(
             input_ids=input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,

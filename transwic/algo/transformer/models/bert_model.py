@@ -39,7 +39,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
         super(BertForSequenceClassification, self).__init__(config)
         self.num_labels = config.num_labels
 
-        self.bert = BertModel(config)
+        self.transformer = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         if "-pool" in merge_type:
             self.pool = nn.AdaptiveAvgPool1d(config.hidden_size)
@@ -67,7 +67,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
         entity_positions=None
     ):
 
-        outputs = self.bert(
+        outputs = self.transformer(
             input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
