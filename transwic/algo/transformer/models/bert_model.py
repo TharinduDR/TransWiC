@@ -41,7 +41,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
 
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        if "-pool" in merge_type:
+        if merge_type is not None and "-pool" in merge_type:
             self.pool = nn.AdaptiveAvgPool1d(config.hidden_size)
 
         self.classifier = nn.Linear(config.hidden_size * merge_n, self.config.num_labels)
