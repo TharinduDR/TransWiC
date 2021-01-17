@@ -2,6 +2,9 @@
 
 
 def validate_transformer_config(transformer_config, has_text_b=False):
+    # set merge n
+    transformer_config['merge_n'] = 1
+
     if not transformer_config['tagging']:
         transformer_config['merge_type'] = None
         print(f"updated merge_type to {transformer_config['merge_type']}")
@@ -16,9 +19,6 @@ def validate_transformer_config(transformer_config, has_text_b=False):
             transformer_config['special_tags'] = ["<end>"]
             print(f"updated special_tags to {transformer_config['special_tags']}")
 
-        # set merge n
-        transformer_config['merge_n'] = 1
-        updated = 0
         if "entity" in transformer_config['merge_type']:
             if has_text_b:
                 transformer_config['merge_n'] = 2
