@@ -281,10 +281,18 @@ class MonoTransWiCModel:
 
         if self.args.tagging:
             self.tokenizer.add_tokens([self.args.begin_tag, self.args.end_tag], special_tokens=True)
-            self.model.bert.embeddings.word_embeddings.weight[-1, :] = torch.rand(
-                [self.model.bert.config.hidden_size])
-            self.model.bert.embeddings.word_embeddings.weight[-2, :] = torch.rand(
-                [self.model.bert.config.hidden_size])
+
+            if model_name == "bert":
+                self.model.bert.embeddings.word_embeddings.weight[-1, :] = torch.rand(
+                    [self.model.bert.config.hidden_size])
+                self.model.bert.embeddings.word_embeddings.weight[-2, :] = torch.rand(
+                    [self.model.bert.config.hidden_size])
+
+            elif model_name == "xlmroberta":
+                self.model.roberta.embeddings.word_embeddings.weight[-1, :] = torch.rand(
+                    [self.model.bert.config.hidden_size])
+                self.model.roberta.embeddings.word_embeddings.weight[-2, :] = torch.rand(
+                    [self.model.bert.config.hidden_size])
             self.model.resize_token_embeddings(len(self.tokenizer))
 
 
