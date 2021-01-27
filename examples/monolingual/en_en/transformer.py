@@ -118,4 +118,4 @@ test['tag'] = decode(test['predictions'])
 
 
 test = test[['id', 'tag']]
-test.to_json(os.path.join(TEMP_DIRECTORY, 'test.en-en.labels'), orient='records', lines=True)
+test.to_json(os.path.join(TEMP_DIRECTORY, 'test.en-en'))
