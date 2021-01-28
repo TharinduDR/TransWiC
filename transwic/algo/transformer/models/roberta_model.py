@@ -4,10 +4,11 @@ from torch.nn import CrossEntropyLoss, MSELoss
 
 
 from transformers import BertPreTrainedModel, ROBERTA_PRETRAINED_MODEL_ARCHIVE_LIST, RobertaConfig, RobertaModel
-from transformers.models.roberta.modeling_roberta import RobertaClassificationHead
+from transformers.models.roberta.modeling_roberta import RobertaClassificationHead, RobertaPreTrainedModel
 
 
-class RobertaForSequenceClassification(BertPreTrainedModel):
+# class RobertaForSequenceClassification(BertPreTrainedModel):
+class RobertaForSequenceClassification(RobertaPreTrainedModel):
     r"""
         **labels**: (`optional`) ``torch.LongTensor`` of shape ``(batch_size,)``:
             Labels for computing the sequence classification/regression loss.
