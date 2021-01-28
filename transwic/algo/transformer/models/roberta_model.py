@@ -15,7 +15,7 @@ class RobertaClassificationHead(nn.Module):
 
     def __init__(self, config, merge_n):
         super().__init__()
-        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.dense = nn.Linear(config.hidden_size * merge_n, config.hidden_size * merge_n)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         # self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
         self.out_proj = nn.Linear(config.hidden_size * merge_n, config.num_labels)
