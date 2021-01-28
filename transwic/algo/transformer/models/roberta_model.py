@@ -39,7 +39,7 @@ class RobertaForSequenceClassification(RobertaPreTrainedModel):
     pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_LIST
     base_model_prefix = "roberta"
 
-    def __init__(self, config, weight=None):
+    def __init__(self, config, weight=None, merge_type=None, merge_n=1):
         super(RobertaForSequenceClassification, self).__init__(config)
         self.num_labels = config.num_labels
 
@@ -56,6 +56,7 @@ class RobertaForSequenceClassification(RobertaPreTrainedModel):
         head_mask=None,
         inputs_embeds=None,
         labels=None,
+        entity_positions=None
     ):
         outputs = self.roberta(
             input_ids,
