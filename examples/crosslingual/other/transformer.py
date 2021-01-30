@@ -23,17 +23,17 @@ data_config = {"test.en-ar.data": "test.en-ar",
                 "test.en-zh.data": "test.en-zh",
                }
 
-test = read_test_file(os.path.join(DATA_DIRECTORY, "test.en-en.data"), args=transformer_config)
+for key, value in data_config.items():
 
-test_sentence_pairs = list(map(list, zip(test['text_a'].to_list(), test['text_b'].to_list())))
+    test = read_test_file(os.path.join(DATA_DIRECTORY, key), args=transformer_config)
 
-# validate  configs
-transformer_config = validate_transformer_config(transformer_config, has_text_b=True)
+    test_sentence_pairs = list(map(list, zip(test['text_a'].to_list(), test['text_b'].to_list())))
 
+    # validate  configs
+    transformer_config = validate_transformer_config(transformer_config, has_text_b=True)
 
-
-test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
-test['predictions'] = test_predictions
-test['tag'] = decode(test['predictions'])
-test = test[['id', 'tag']]
-test.to_json(os.path.join(TEMP_DIRECTORY, 'test.en-en'), orient='records')
+    test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
+    test['predictions'] = test_predictions
+    test['tag'] = decode(test['predictions'])
+    test = test[['id', 'tag']]
+    test.to_json(os.path.join(TEMP_DIRECTORY, value), orient='records')

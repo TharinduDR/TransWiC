@@ -1,6 +1,6 @@
 from multiprocessing import cpu_count
 
-DATA_DIRECTORY = "examples/monolingual/en_en/data/"
+DATA_DIRECTORY = "examples/crosslingual/other/data/"
 # DATA_DIRECTORY = "data/"
 TEMP_DIRECTORY = "temp/data"
 
