@@ -18,6 +18,8 @@ from transwic.algo.transformer.monotranswic import MonoTransWiCModel
 if not os.path.exists(TEMP_DIRECTORY):
     os.makedirs(TEMP_DIRECTORY)
 
+
+
 train = read_training_file(os.path.join(DATA_DIRECTORY, "training.en-en.data"),
                            os.path.join(DATA_DIRECTORY, "training.en-en.gold"), args=transformer_config)
 
