@@ -22,10 +22,12 @@ def read_test_file(data_path, args, cross_Lingual=False):
     if args["tagging"]:
         if cross_Lingual:
             data_df['sentence1'] = data_df.apply(
-                lambda row: include_tags(row['sentence1'], row['ranges1'].split("-")[0], row['ranges1'].split("-")[1],
+                lambda row: include_tags(row['sentence1'], int(row['ranges1'].split(",")[0].split("-")[0]),
+                                         int(row['ranges1'].split(",")[0].split("-")[1]),
                                          args), axis=1)
             data_df['sentence2'] = data_df.apply(
-                lambda row: include_tags(row['sentence2'], row['ranges2'].split("-")[0], row['ranges2'].split("-")[1],
+                lambda row: include_tags(row['sentence2'], int(row['ranges2'].split(",")[0].split("-")[0]),
+                                         int(row['ranges2'].split(",")[0].split("-")[1]),
                                          args), axis=1)
         else:
             data_df['sentence1'] = data_df.apply(
