@@ -5,7 +5,7 @@ import torch
 from examples.common.config_validator import validate_transformer_config
 from examples.common.label_converter import decode
 from examples.common.reader import read_test_file
-from examples.monolingual.en_en.transformer_config import DATA_DIRECTORY, TEMP_DIRECTORY, \
+from examples.crosslingual.other.transformer_config import DATA_DIRECTORY, TEMP_DIRECTORY, \
     transformer_config, MODEL_TYPE, MODEL_NAME
 from transwic.algo.transformer.monotranswic import MonoTransWiCModel
 
@@ -23,7 +23,6 @@ data_config = {"test.en-ar.data": "test.en-ar",
 for key, value in data_config.items():
 
     test = read_test_file(os.path.join(DATA_DIRECTORY, key), args=transformer_config)
-
     test_sentence_pairs = list(map(list, zip(test['text_a'].to_list(), test['text_b'].to_list())))
 
     # validate  configs
