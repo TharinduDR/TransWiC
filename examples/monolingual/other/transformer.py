@@ -10,7 +10,7 @@ from examples.common.config_validator import validate_transformer_config
 from examples.common.evaluation import weighted_f1, macro_f1
 from examples.common.label_converter import decode, encode
 from examples.common.reader import read_training_file, read_test_file
-from examples.monolingual.en_en.transformer_config import DATA_DIRECTORY, TEMP_DIRECTORY, \
+from examples.monolingual.other.transformer_config import DATA_DIRECTORY, TEMP_DIRECTORY, \
     transformer_config, MODEL_NAME, MODEL_TYPE
 from transwic.algo.transformer.monotranswic import MonoTransWiCModel
 
