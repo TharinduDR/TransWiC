@@ -9,11 +9,18 @@ from sklearn.model_selection import train_test_split
 from examples.common.config_validator import validate_transformer_config
 from examples.common.evaluation import weighted_f1, macro_f1
 from examples.common.label_converter import decode, encode
-from examples.common.print_stat import print_information
 from examples.common.reader import read_training_file, read_test_file
 from examples.monolingual.en_en.transformer_config import DATA_DIRECTORY, TEMP_DIRECTORY, \
     transformer_config, MODEL_NAME, MODEL_TYPE
 from transwic.algo.transformer.monotranswic import MonoTransWiCModel
+
+english_train = read_training_file(os.path.join("examples/monolingual/en_en/data/", "training.en-en.data"),
+                           os.path.join("examples/monolingual/en_en/data/", "training.en-en.gold"),
+                           args=transformer_config)
+
+english_train = english_train.rename(columns={'sentence1': 'text_a', 'sentence2': 'text_b', 'tag': 'labels'}).dropna()
+english_train = english_train[['text_a', 'text_b', 'labels']]
+english_train['labels'] = encode(english_train["labels"])
 
 if not os.path.exists(TEMP_DIRECTORY):
     os.makedirs(TEMP_DIRECTORY)
@@ -38,7 +45,6 @@ for key, value in data_config.items():
     test = test.rename(columns={'sentence1': 'text_a', 'sentence2': 'text_b'}).dropna()
 
     train['labels'] = encode(train["labels"])
-
 
     test_sentence_pairs = list(map(list, zip(test['text_a'].to_list(), test['text_b'].to_list())))
 
@@ -89,7 +95,8 @@ for key, value in data_config.items():
 
             model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
                                       use_cuda=torch.cuda.is_available(), args=transformer_config,
-                                      merge_type=transformer_config['merge_type'], merge_n=transformer_config['merge_n'])
+                                      merge_type=transformer_config['merge_type'],
+                                      merge_n=transformer_config['merge_n'])
 
             test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
             test['predictions'] = test_predictions
@@ -102,6 +109,7 @@ for key, value in data_config.items():
         test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
         test['predictions'] = test_predictions
 
+    del model
 
     test['tag'] = decode(test['predictions'])
     test = test[['id', 'tag']]
