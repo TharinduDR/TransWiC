@@ -16,14 +16,22 @@ def read_training_file(data_path, annotation_path, args):
     return complete_df
 
 
-def read_test_file(data_path, args):
+def read_test_file(data_path, args, cross_Lingual=False):
     data_df = pd.read_json(data_path, orient='records')
 
     if args["tagging"]:
-        data_df['sentence1'] = data_df.apply(
-            lambda row: include_tags(row['sentence1'], row['start1'], row['end1'], args), axis=1)
-        data_df['sentence2'] = data_df.apply(
-            lambda row: include_tags(row['sentence2'], row['start2'], row['end2'], args), axis=1)
+        if cross_Lingual:
+            data_df['sentence1'] = data_df.apply(
+                lambda row: include_tags(row['sentence1'], row['ranges1'].split("-")[0], row['ranges1'].split("-")[1],
+                                         args), axis=1)
+            data_df['sentence2'] = data_df.apply(
+                lambda row: include_tags(row['sentence2'], row['ranges2'].split("-")[0], row['ranges2'].split("-")[1],
+                                         args), axis=1)
+        else:
+            data_df['sentence1'] = data_df.apply(
+                lambda row: include_tags(row['sentence1'], row['start1'], row['end1'], args), axis=1)
+            data_df['sentence2'] = data_df.apply(
+                lambda row: include_tags(row['sentence2'], row['start2'], row['end2'], args), axis=1)
     return data_df
 
 
