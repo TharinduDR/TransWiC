@@ -77,6 +77,7 @@ for key, value in data_config.items():
                 test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
 
                 test_preds[:, i] = test_predictions
+                del model
 
             final_test_predictions = []
             for row in test_preds:
@@ -100,6 +101,7 @@ for key, value in data_config.items():
 
             test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
             test['predictions'] = test_predictions
+            del model
 
     else:
         model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
@@ -108,8 +110,8 @@ for key, value in data_config.items():
         model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
         test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
         test['predictions'] = test_predictions
+        del model
 
-    del model
 
     test['tag'] = decode(test['predictions'])
     test = test[['id', 'tag']]
