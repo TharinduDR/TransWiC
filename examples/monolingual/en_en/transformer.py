@@ -4,6 +4,7 @@ import shutil
 import numpy as np
 import sklearn
 import torch
+import random
 from sklearn.model_selection import train_test_split
 
 from examples.common.config_validator import validate_transformer_config
@@ -17,6 +18,11 @@ from transwic.algo.transformer.monotranswic import MonoTransWiCModel
 
 if not os.path.exists(TEMP_DIRECTORY):
     os.makedirs(TEMP_DIRECTORY)
+
+
+random.seed(transformer_config['manual_seed'] )
+np.random.seed(transformer_config['manual_seed'] )
+torch.manual_seed(transformer_config['manual_seed'] )
 
 train = read_training_file(os.path.join(DATA_DIRECTORY, "training.en-en.data"),
                            os.path.join(DATA_DIRECTORY, "training.en-en.gold"), args=transformer_config)
