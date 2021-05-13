@@ -1,14 +1,19 @@
 import os
 from multiprocessing import cpu_count
 
-# DATA_DIRECTORY = "examples/monolingual/other/data/"
-# DATA_DIRECTORY = "data/"
+from examples.monolingual.en_en.transformer_config import BASE_PATH_EN
+
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_DIRECTORY = os.path.join(BASE_PATH, "data")
+DATA_DIRECTORY_EN = os.path.join(BASE_PATH_EN, "data")
+
 TEMP_DIRECTORY = "temp/data"
 
 MODEL_TYPE = "bert"
 MODEL_NAME = "bert-base-cased"
+
+LANGUAGES = ["en", "ar", "fr", "ru", "zh"]  # only used by transformer_combined
+TRAIN_N = None  # Only used by transformer. If int is given top TRAIN_N training instances will be considered.
 
 transformer_config = {
     'output_dir': 'temp/outputs/',

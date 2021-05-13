@@ -5,6 +5,7 @@ import shutil
 import numpy as np
 import sklearn
 import torch
+from sklearn.model_selection import train_test_split
 
 from examples.common.config_validator import validate_transformer_config
 from examples.common.evaluation import weighted_f1, macro_f1
@@ -25,9 +26,10 @@ torch.manual_seed(transformer_config['manual_seed'])
 if __name__ == '__main__':
     train = read_data(os.path.join(DATA_DIRECTORY, "training.en-en.data"),
                       os.path.join(DATA_DIRECTORY, "training.en-en.gold"), args=transformer_config)
-
     dev = read_data(os.path.join(DATA_DIRECTORY, "dev.en-en.data"), os.path.join(DATA_DIRECTORY, "dev.en-en.gold"),
                     args=transformer_config)
+    # combine train and dev
+    train = train.append(dev)
 
     test = read_data(os.path.join(DATA_DIRECTORY, "test.en-en.data"), os.path.join(DATA_DIRECTORY, "test.en-en.gold"),
                      args=transformer_config)
@@ -35,13 +37,9 @@ if __name__ == '__main__':
     train = train.rename(columns={'sentence1': 'text_a', 'sentence2': 'text_b', 'tag': 'labels'}).dropna()
     train = train[['text_a', 'text_b', 'labels']]
 
-    dev = dev.rename(columns={'sentence1': 'text_a', 'sentence2': 'text_b', 'tag': 'labels'}).dropna()
-    dev = dev[['text_a', 'text_b', 'labels']]
-
     test = test.rename(columns={'sentence1': 'text_a', 'sentence2': 'text_b', 'tag': 'labels'}).dropna()
 
     train['labels'] = encode(train["labels"])
-    dev['labels'] = encode(dev["labels"])
     test['labels'] = encode(test["labels"])
 
     test_sentence_pairs = list(map(list, zip(test['text_a'].to_list(), test['text_b'].to_list())))
@@ -61,7 +59,10 @@ if __name__ == '__main__':
                                           args=transformer_config, merge_type=transformer_config['merge_type'],
                                           merge_n=transformer_config['merge_n'])
 
-                model.train_model(train, eval_df=dev, macro_f1=macro_f1, weighted_f1=weighted_f1,
+                train_df, eval_df = train_test_split(train, test_size=0.1,
+                                                     random_state=transformer_config['manual_seed'] * i)
+
+                model.train_model(train, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
                                   accuracy=sklearn.metrics.accuracy_score)
 
                 model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
@@ -82,7 +83,10 @@ if __name__ == '__main__':
             model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
                                       args=transformer_config, merge_type=transformer_config['merge_type'],
                                       merge_n=transformer_config['merge_n'])
-            model.train_model(train, eval_df=dev, macro_f1=macro_f1, weighted_f1=weighted_f1,
+
+            train_df, eval_df = train_test_split(train, test_size=0.1, random_state=transformer_config['manual_seed'])
+
+            model.train_model(train, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
                               accuracy=sklearn.metrics.accuracy_score)
 
             model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
