@@ -1,7 +1,11 @@
+import os
 from multiprocessing import cpu_count
 
-DATA_DIRECTORY = "examples/monolingual/en_en/data/"
+# DATA_DIRECTORY = "examples/monolingual/en_en/data/"
 # DATA_DIRECTORY = "data/"
+
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+DATA_DIRECTORY = os.path.join(BASE_PATH, "data")
 TEMP_DIRECTORY = "temp/data"
 
 MODEL_TYPE = "bert"
