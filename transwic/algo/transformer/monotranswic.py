@@ -222,7 +222,7 @@ class MonoTransWiCModel:
                     )
                 else:
                     self.model = model_class.from_pretrained(model_name, config=self.config, merge_type=merge_type,
-                                                             merge_n = merge_n, **kwargs)
+                                                             merge_n=merge_n, **kwargs)
             else:
                 quantized_weights = torch.load(os.path.join(model_name, "pytorch_model.bin"))
                 if self.weight:
@@ -236,7 +236,7 @@ class MonoTransWiCModel:
                     )
                 else:
                     self.model = model_class.from_pretrained(None, config=self.config, merge_type=merge_type,
-                                                             merge_n = merge_n, state_dict=quantized_weights)
+                                                             merge_n=merge_n, state_dict=quantized_weights)
 
             if self.args.dynamic_quantize:
                 self.model = torch.quantization.quantize_dynamic(self.model, {torch.nn.Linear}, dtype=torch.qint8)
