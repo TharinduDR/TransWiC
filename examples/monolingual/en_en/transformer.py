@@ -62,7 +62,7 @@ if __name__ == '__main__':
                 train_df, eval_df = train_test_split(train, test_size=0.1,
                                                      random_state=transformer_config['manual_seed'] * i)
 
-                model.train_model(train, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
+                model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
                                   accuracy=sklearn.metrics.accuracy_score)
 
                 model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
             train_df, eval_df = train_test_split(train, test_size=0.1, random_state=transformer_config['manual_seed'])
 
-            model.train_model(train, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
+            model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
                               accuracy=sklearn.metrics.accuracy_score)
 
             model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
