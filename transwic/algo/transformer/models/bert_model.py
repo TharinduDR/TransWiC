@@ -1,10 +1,8 @@
-import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss, MSELoss
 from transformers import BertPreTrainedModel, BertModel
 
-from transwic.algo.transformer.models.model_util import get_pooled_entity_output, get_first_entity_output, \
-    get_last_entity_output, process_embeddings
+from transwic.algo.transformer.models.model_util import process_embeddings
 
 
 class BertForSequenceClassification(BertPreTrainedModel):
@@ -75,51 +73,6 @@ class BertForSequenceClassification(BertPreTrainedModel):
         # Complains if input_embeds is kept
 
         processed_output = process_embeddings(outputs, entity_positions, self.merge_type, self.pool)
-
-        # # if entity positions are given, get embeddings at the given positions
-        # if entity_positions is not None:
-        #     indices = [i for i in range(0, entity_positions.shape[0])]
-        #     tensor_indices = torch.tensor(indices, dtype=torch.long)
-        #
-        #     if self.merge_type is not None:
-        #         if "concat" in self.merge_type:
-        #             list_pooled_output = []
-        #             for i in range(0, entity_positions.shape[1]):
-        #                 temp_pooled_output = outputs[0][tensor_indices, entity_positions[:, i], :]
-        #                 list_pooled_output.append(temp_pooled_output)
-        #             pooled_output = torch.cat(list_pooled_output, 1)
-        #
-        #         elif "add" in self.merge_type or "avg" in self.merge_type:
-        #             pooled_output = outputs[0][tensor_indices, entity_positions[:, 0], :]
-        #             for i in range(1, entity_positions.shape[1]):
-        #                 temp_pooled_output = outputs[0][tensor_indices, entity_positions[:, i], :]
-        #                 pooled_output = pooled_output.add(temp_pooled_output)
-        #             if "avg" in self.merge_type:
-        #                 pooled_output = torch.div(pooled_output, entity_positions.shape[1])
-        #
-        #         elif "entity-pool" in self.merge_type:
-        #             if entity_positions.shape[1] % 2 != 0:
-        #                 raise ValueError("begin or end of the entity is missing!")
-        #             pooled_output = get_pooled_entity_output(outputs[0], entity_positions, self.pool)
-        #
-        #         elif "entity-first" in self.merge_type:
-        #             pooled_output = get_first_entity_output(outputs[0], entity_positions, tensor_indices)
-        #
-        #         elif "entity-last" in self.merge_type:
-        #             pooled_output = get_last_entity_output(outputs[0], entity_positions, tensor_indices)
-        #
-        #         else:  # If merge type is unkown
-        #             raise KeyError(f"Unknown merge type found - {self.merge_type}")
-        #
-        #         if "cls-" in self.merge_type:
-        #             pooled_output = torch.cat((outputs[1], pooled_output), 1)
-        #
-        #     else:  # if no merge type defined
-        #         raise KeyError("No merge type defined.")
-        #
-        # # if no entity positions are given, get the embedding of CLS token
-        # else:
-        #     pooled_output = outputs[1]
 
         pooled_output = self.dropout(processed_output)
         logits = self.classifier(pooled_output)

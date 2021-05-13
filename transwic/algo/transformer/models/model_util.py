@@ -43,7 +43,7 @@ def get_first_entity_output(all_embeddings, entity_positions, tensor_indices):
 
     :param all_embeddings: tensor of all embeddings
         if batch_size=8, max_seq_length=120, token_embedding_dimension=768, size of all_embeddings=([8,120,178])
-    :param entity_positions: tensor of entity positions
+    :param entity_positions: tensor of entity positions (begin tag)
         if batch_size=8, number of targeted entities=2, size of entity_positions=([8,2])
         per instance begin tag position of each entity need to be provided.
         [[begin tag position of entity1, begin tag position of entity2]...]
@@ -67,7 +67,7 @@ def get_last_entity_output(all_embeddings, entity_positions, tensor_indices):
 
     :param all_embeddings: tensor of all embeddings
         if batch_size=8, max_seq_length=120, token_embedding_dimension=768, size of all_embeddings=([8,120,178])
-    :param entity_positions: tensor of entity positions
+    :param entity_positions: tensor of entity positions (end tag)
         if batch_size=8, number of targeted entities=2, size of entity_positions=([8,2])
     :param tensor_indices: tensor of batch indices
         if batch_size=8, tensor([0,1,2,3,4,5,6,7])
