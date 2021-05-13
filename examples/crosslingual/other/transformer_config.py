@@ -64,13 +64,12 @@ transformer_config = {
     "early_stopping_metric_minimize": True,
     "early_stopping_consider_epochs": False,
 
-    "tagging": False,
+    "tagging": True,
     "begin_tag": "<begin>",
     "end_tag": "<end>",
+    "merge_type": "cls",  # "cls, "concat", "add", "avg", "entity-pool", "entity-first", "entity-last", "cls-*"
     "special_tags": ["<begin>"],  # Should be either begin_tag or end_tag
-    "merge_type": "cls",  # "concat", "add", "avg", "entity-pool", "entity-first", "entity-last", "cls-*"
-    # "merge_n": 2,  # number of output vectors need to be merged for the classifier input
-    # # all entity merge_types are based on concatenation
+    # Need to be provided only for the merge_types: concat, add and avg. For others this will be automatically set.
 
     "manual_seed": 777,
 

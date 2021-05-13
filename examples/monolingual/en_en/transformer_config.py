@@ -67,8 +67,9 @@ transformer_config = {
     "tagging": True,
     "begin_tag": "<begin>",
     "end_tag": "<end>",
+    "merge_type": "cls",  # "cls, "concat", "add", "avg", "entity-pool", "entity-first", "entity-last", "cls-*"
     "special_tags": ["<begin>"],  # Should be either begin_tag or end_tag
-    "merge_type": "concat",  # "cls, "concat", "add", "avg", "entity-pool", "entity-first", "entity-last", "cls-*"
+    # Need to be provided only for the merge_types: concat, add and avg. For others this will be automatically set.
 
     "manual_seed": 777,
 
