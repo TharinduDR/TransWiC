@@ -66,6 +66,7 @@ class RobertaForSequenceClassification(RobertaPreTrainedModel):
 
         self.roberta = RobertaModel(config)
 
+        self.pool = None
         if merge_type is not None and "-pool" in merge_type:
             self.pool = nn.AdaptiveAvgPool1d(config.hidden_size)
 
