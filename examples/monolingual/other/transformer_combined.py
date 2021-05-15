@@ -33,7 +33,6 @@ test_instances = dict()
 
 for lang in LANGUAGES:
     if lang == "en":
-        print(os.path.join(DATA_DIRECTORY_EN, f"training.{lang}-{lang}.data"))
         temp_train = read_data(os.path.join(DATA_DIRECTORY_EN, f"training.{lang}-{lang}.data"),
                                os.path.join(DATA_DIRECTORY_EN, f"training.{lang}-{lang}.gold"),
                                args=transformer_config)
@@ -44,7 +43,6 @@ for lang in LANGUAGES:
                          os.path.join(DATA_DIRECTORY_EN, f"test.{lang}-{lang}.gold"),
                          args=transformer_config)
     else:
-        print(os.path.join(DATA_DIRECTORY, f"dev.{lang}-{lang}.data"))
         temp_train = read_data(os.path.join(DATA_DIRECTORY, f"dev.{lang}-{lang}.data"),
                                os.path.join(DATA_DIRECTORY, f"dev.{lang}-{lang}.gold"),
                                args=transformer_config)
