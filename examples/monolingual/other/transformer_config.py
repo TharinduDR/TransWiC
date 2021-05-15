@@ -9,8 +9,8 @@ DATA_DIRECTORY_EN = os.path.join(BASE_PATH_EN, "data")
 
 TEMP_DIRECTORY = "temp/data"
 
-MODEL_TYPE = "bert"
-MODEL_NAME = "bert-base-cased"
+MODEL_TYPE = "xlmroberta"
+MODEL_NAME = "xlm-roberta-large"
 
 LANGUAGES = ["en", "ar", "fr", "ru", "zh"]  # only used by transformer_combined
 TRAIN_N = None  # Only used by transformer. If int is given top TRAIN_N training instances will be considered.
@@ -35,8 +35,8 @@ transformer_config = {
     'max_grad_norm': 1.0,
     'do_lower_case': False,
 
-    'logging_steps': 300,
-    'save_steps': 300,
+    'logging_steps': 100,
+    'save_steps': 100,
     "no_cache": False,
     "no_save": False,
     "save_recent_only": True,
@@ -44,7 +44,7 @@ transformer_config = {
     'n_fold': 3,
     'evaluate_during_training': True,
     "evaluate_during_training_silent": False,
-    'evaluate_during_training_steps': 300,
+    'evaluate_during_training_steps': 100,
     "evaluate_during_training_verbose": True,
     'use_cached_eval_features': False,
     "save_best_model": True,
@@ -72,7 +72,7 @@ transformer_config = {
     "early_stopping_metric_minimize": True,
     "early_stopping_consider_epochs": False,
 
-    "tagging": True,
+    "tagging": False,
     "begin_tag": "<begin>",
     "end_tag": "<end>",
     "merge_type": "cls",  # "cls, "concat", "add", "avg", "entity-pool", "entity-first", "entity-last", "cls-*"
