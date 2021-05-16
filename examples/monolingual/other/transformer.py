@@ -1,4 +1,5 @@
 import os
+import random
 import shutil
 
 import numpy as np
@@ -17,6 +18,10 @@ from transwic.algo.transformer.monotranswic import MonoTransWiCModel
 
 if not os.path.exists(TEMP_DIRECTORY):
     os.makedirs(TEMP_DIRECTORY)
+
+random.seed(transformer_config['manual_seed'])
+np.random.seed(transformer_config['manual_seed'])
+torch.manual_seed(transformer_config['manual_seed'])
 
 data_config = {
     # "ar_ar": ["dev.ar-ar.data", "dev.ar-ar.gold", "test.ar-ar.data", "test.ar-ar.gold", "test.ar-ar"],
@@ -76,6 +81,7 @@ for key, value in data_config.items():
                 test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
 
                 test_preds[:, i] = test_predictions
+                model = None
                 del model
 
             final_test_predictions = []
@@ -100,6 +106,7 @@ for key, value in data_config.items():
 
             test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
             test['predictions'] = test_predictions
+            model = None
             del model
 
     else:
@@ -109,6 +116,7 @@ for key, value in data_config.items():
         model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
         test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
         test['predictions'] = test_predictions
+        model = None
         del model
 
     print(f'\n Evaluating {key}')

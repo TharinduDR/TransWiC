@@ -1,4 +1,5 @@
 import os
+import random
 import shutil
 
 import numpy as np
@@ -18,6 +19,10 @@ from transwic.algo.transformer.monotranswic import MonoTransWiCModel
 
 if not os.path.exists(TEMP_DIRECTORY):
     os.makedirs(TEMP_DIRECTORY)
+
+random.seed(transformer_config['manual_seed'])
+np.random.seed(transformer_config['manual_seed'])
+torch.manual_seed(transformer_config['manual_seed'])
 
 
 class TestInstance:
