@@ -24,8 +24,8 @@ np.random.seed(transformer_config['manual_seed'])
 torch.manual_seed(transformer_config['manual_seed'])
 
 data_config = {
-    "ar_ar": ["dev.ar-ar.data", "dev.ar-ar.gold", "test.ar-ar.data", "test.ar-ar.gold", "test.ar-ar"],
-    # "fr_fr": ["dev.fr-fr.data", "dev.fr-fr.gold", "test.fr-fr.data", "test.fr-fr.gold", "test.fr-fr"],
+    # "ar_ar": ["dev.ar-ar.data", "dev.ar-ar.gold", "test.ar-ar.data", "test.ar-ar.gold", "test.ar-ar"],
+    "fr_fr": ["dev.fr-fr.data", "dev.fr-fr.gold", "test.fr-fr.data", "test.fr-fr.gold", "test.fr-fr"],
     # "ru_ru": ["dev.ru-ru.data", "dev.ru-ru.gold", "test.ru-ru.data", "test.ru-ru.gold", "test.ru-ru"],
     # "zh_zh": ["dev.zh-zh.data", "dev.zh-zh.gold", "test.zh-zh.data", "test.zh-zh.gold", "test.zh-zh"],
 }
