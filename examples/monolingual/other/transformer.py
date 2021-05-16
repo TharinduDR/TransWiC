@@ -59,7 +59,7 @@ for key, value in data_config.items():
         if transformer_config["n_fold"] > 1:
             test_preds = np.zeros((len(test), transformer_config["n_fold"]))
             for i in range(transformer_config["n_fold"]):
-
+                print(f'Started fold {i}')
                 if os.path.exists(transformer_config['output_dir']) and os.path.isdir(transformer_config['output_dir']):
                     shutil.rmtree(transformer_config['output_dir'])
 
