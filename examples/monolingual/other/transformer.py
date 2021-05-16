@@ -83,6 +83,7 @@ for key, value in data_config.items():
                 test_preds[:, i] = test_predictions
                 model = None
                 del model
+                torch.cuda.empty_cache()
 
             final_test_predictions = []
             for row in test_preds:
@@ -108,6 +109,7 @@ for key, value in data_config.items():
             test['predictions'] = test_predictions
             model = None
             del model
+            torch.cuda.empty_cache()
 
     else:
         model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
@@ -118,6 +120,7 @@ for key, value in data_config.items():
         test['predictions'] = test_predictions
         model = None
         del model
+        torch.cuda.empty_cache()
 
     print(f'\n Evaluating {key}')
     test['tag'] = decode(test['predictions'])
