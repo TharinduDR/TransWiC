@@ -39,6 +39,8 @@ for key, value in data_config.items():
                      args=transformer_config, cross_Lingual=True)
 
     test = test.rename(columns={'sentence1': 'text_a', 'sentence2': 'text_b', 'tag': 'labels'}).dropna()
+    test['labels'] = encode(test["labels"])
+
     test_sentence_pairs = list(map(list, zip(test['text_a'].to_list(), test['text_b'].to_list())))
 
     # validate  configs
