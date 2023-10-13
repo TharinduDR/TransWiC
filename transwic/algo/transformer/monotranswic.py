@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function
 import glob
 import logging
 import math
+import numbers
 import os
 import random
 import shutil
@@ -686,7 +687,8 @@ class MonoTransWiCModel:
                         training_progress_scores["global_step"].append(global_step)
                         training_progress_scores["train_loss"].append(current_loss)
                         for key in results:
-                            training_progress_scores[key].append(results[key])
+                            if isinstance(results[key], numbers.Number):
+                                training_progress_scores[key].append(results[key])
                         report = pd.DataFrame(training_progress_scores)
                         report.to_csv(
                             os.path.join(args.output_dir, "training_progress_scores.csv"), index=False,
@@ -718,6 +720,8 @@ class MonoTransWiCModel:
                                             logger.info(f" Patience of {args.early_stopping_patience} steps reached")
                                             logger.info(" Training terminated.")
                                             train_iterator.close()
+                                        if args.wandb_project:
+                                            wandb.finish()
                                         return (
                                             global_step,
                                             tr_loss / global_step
@@ -744,6 +748,10 @@ class MonoTransWiCModel:
                                             logger.info(f" Patience of {args.early_stopping_patience} steps reached")
                                             logger.info(" Training terminated.")
                                             train_iterator.close()
+
+                                        if args.wandb_project:
+                                            wandb.finish()
+
                                         return (
                                             global_step,
                                             tr_loss / global_step
@@ -779,7 +787,8 @@ class MonoTransWiCModel:
                 training_progress_scores["global_step"].append(global_step)
                 training_progress_scores["train_loss"].append(current_loss)
                 for key in results:
-                    training_progress_scores[key].append(results[key])
+                    if isinstance(results[key], numbers.Number):
+                        training_progress_scores[key].append(results[key])
                 report = pd.DataFrame(training_progress_scores)
                 report.to_csv(os.path.join(args.output_dir, "training_progress_scores.csv"), index=False)
 
@@ -807,6 +816,10 @@ class MonoTransWiCModel:
                                     logger.info(f" Patience of {args.early_stopping_patience} steps reached")
                                     logger.info(" Training terminated.")
                                     train_iterator.close()
+
+                                if args.wandb_project:
+                                    wandb.finish()
+
                                 return (
                                     global_step,
                                     tr_loss / global_step
@@ -831,12 +844,18 @@ class MonoTransWiCModel:
                                     logger.info(f" Patience of {args.early_stopping_patience} steps reached")
                                     logger.info(" Training terminated.")
                                     train_iterator.close()
+
+                                if args.wandb_project:
+                                    wandb.finish()
+
                                 return (
                                     global_step,
                                     tr_loss / global_step
                                     if not self.args.evaluate_during_training
                                     else training_progress_scores,
                                 )
+        if args.wandb_project:
+            wandb.finish()
 
         return (
             global_step,

@@ -1,3 +1,4 @@
+import argparse
 import os
 import random
 import shutil
@@ -8,13 +9,20 @@ import torch
 from sklearn.model_selection import train_test_split
 
 from examples.common.config_validator import validate_transformer_config
-from examples.common.evaluation import weighted_f1, macro_f1
+from examples.common.evaluation import weighted_f1, macro_f1, weighted_recall, weighted_precision, cls_report
 from examples.common.label_converter import decode, encode
 from examples.common.print_stat import print_information
 from examples.common.reader import read_data
 from examples.monolingual.en_en.transformer_config import DATA_DIRECTORY, TEMP_DIRECTORY, \
     transformer_config, MODEL_NAME, MODEL_TYPE
 from transwic.algo.transformer.monotranswic import MonoTransWiCModel
+
+parser = argparse.ArgumentParser(description='''evaluates multiple models  ''')
+parser.add_argument('--wandb_api_key', required=False, help='wandb api key', default=None)
+arguments = parser.parse_args()
+
+if arguments.wandb_api_key is not None:
+    os.environ['WANDB_API_KEY'] = arguments.wandb_api_key
 
 if not os.path.exists(TEMP_DIRECTORY):
     os.makedirs(TEMP_DIRECTORY)
@@ -49,6 +57,8 @@ if __name__ == '__main__':
         if transformer_config["n_fold"] > 1:
             test_preds = np.zeros((len(test), transformer_config["n_fold"]))
             for i in range(transformer_config["n_fold"]):
+                transformer_config['wandb_kwargs'] = {
+                    'group': f'en-en_{transformer_config["strategy"]}_{transformer_config["merge_type"]}', 'job_type': str(i)}
 
                 if os.path.exists(transformer_config['output_dir']) and os.path.isdir(transformer_config['output_dir']):
                     shutil.rmtree(transformer_config['output_dir'])
@@ -60,7 +70,8 @@ if __name__ == '__main__':
                                                      random_state=transformer_config['manual_seed'] * i)
 
                 model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
-                                  accuracy=sklearn.metrics.accuracy_score)
+                              weighted_r=weighted_recall, weighted_p=weighted_precision,
+                              accuracy=sklearn.metrics.accuracy_score, cls_report=cls_report)
 
                 model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
                                           use_cuda=torch.cuda.is_available(), args=transformer_config)
@@ -75,13 +86,17 @@ if __name__ == '__main__':
             test['predictions'] = final_test_predictions
 
         else:
+            transformer_config['wandb_kwargs'] = {
+                'name': f'en-en_{transformer_config["strategy"]}_{transformer_config["merge_type"]}'}
+
             model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
                                       args=transformer_config)
 
             train_df, eval_df = train_test_split(train, test_size=0.1, random_state=transformer_config['manual_seed'])
 
             model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
-                              accuracy=sklearn.metrics.accuracy_score)
+                              weighted_r=weighted_recall, weighted_p=weighted_precision,
+                              accuracy=sklearn.metrics.accuracy_score, cls_report=cls_report)
 
             model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
                                       use_cuda=torch.cuda.is_available(), args=transformer_config)
@@ -91,14 +106,16 @@ if __name__ == '__main__':
     else:
         model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
                                   args=transformer_config,)
-        model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
+        model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1,
+                              weighted_r=weighted_recall, weighted_p=weighted_precision,
+                              accuracy=sklearn.metrics.accuracy_score, cls_report=cls_report)
 
         test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
         test['predictions'] = test_predictions
 
     test['tag'] = decode(test['predictions'])
     test['labels'] = decode(test['labels'])
-    print_information(test, "tag", "labels", "pos")
+    print_information(test, "tag", "labels", "pos", eval_file_path=os.path.join(transformer_config['best_model_dir'], 'test_eval.txt'))
 
     test = test[['id', 'tag']]
     test.to_json(os.path.join(TEMP_DIRECTORY, 'test.en-en'), orient='records')
