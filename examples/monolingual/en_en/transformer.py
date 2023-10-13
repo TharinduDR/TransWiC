@@ -4,6 +4,7 @@ import random
 import shutil
 
 import numpy as np
+import pandas as pd
 import sklearn
 import torch
 from sklearn.model_selection import train_test_split
@@ -37,7 +38,8 @@ if __name__ == '__main__':
     dev = read_data(os.path.join(DATA_DIRECTORY, "dev.en-en.data"), os.path.join(DATA_DIRECTORY, "dev.en-en.gold"),
                     args=transformer_config)
     # combine train and dev
-    train = train.append(dev)
+    # train = train.append(dev)
+    train = pd.concat([train, dev], ignore_index=True)
 
     test = read_data(os.path.join(DATA_DIRECTORY, "test.en-en.data"), os.path.join(DATA_DIRECTORY, "test.en-en.gold"),
                      args=transformer_config)
