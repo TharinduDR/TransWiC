@@ -45,7 +45,6 @@ transformer_config = {
     'tensorboard_dir': None,
     "save_optimizer_and_scheduler": True,
 
-
     'overwrite_output_dir': True,
     'reprocess_input_data': True,
 
@@ -65,12 +64,12 @@ transformer_config = {
     "early_stopping_metric_minimize": True,
     "early_stopping_consider_epochs": False,
 
-    "tagging": True,
-    "begin_tag": "<begin>",
-    "end_tag": "<end>",
-    "merge_type": "cls",  # "cls, "concat", "add", "avg", "entity-pool", "entity-first", "entity-last", "cls-*"
-    "special_tags": ["<begin>"],  # Should be either begin_tag or end_tag
-    # Need to be provided only for the merge_types: concat, add and avg. For others this will be automatically set.
+    "begin_tag": "<e>",
+    "end_tag": "</e>",
+
+    "tagging": False,  # False: CLS baseline, True: given strategy
+    "strategy": "CLS-ET",  # B, CLS-B, E, CLS-E, P, CLS-P, BT, CLS-BT, ET, CLS-ET
+    "merge_type": "concat",  # avg, add
 
     "manual_seed": 777,
 

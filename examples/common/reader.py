@@ -62,4 +62,4 @@ def read_data(data_path, annotation_path, args, cross_Lingual=False):
 
 
 def include_tags(sentence, start, end, args):
-    return sentence[:start] + args["begin_tag"] + " " + sentence[start:end] + " " + args["end_tag"] + sentence[end:]
+    return sentence[:start] + args["begin_tag"] + "" + sentence[start:end] + "" + args["end_tag"] + sentence[end:]

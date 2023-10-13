@@ -44,8 +44,6 @@ if __name__ == '__main__':
 
     test_sentence_pairs = list(map(list, zip(test['text_a'].to_list(), test['text_b'].to_list())))
 
-    # validate  configs
-    transformer_config = validate_transformer_config(transformer_config, has_text_b=True)
 
     if transformer_config["evaluate_during_training"]:
         if transformer_config["n_fold"] > 1:
@@ -56,8 +54,7 @@ if __name__ == '__main__':
                     shutil.rmtree(transformer_config['output_dir'])
 
                 model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
-                                          args=transformer_config, merge_type=transformer_config['merge_type'],
-                                          merge_n=transformer_config['merge_n'])
+                                          args=transformer_config)
 
                 train_df, eval_df = train_test_split(train, test_size=0.1,
                                                      random_state=transformer_config['manual_seed'] * i)
@@ -66,9 +63,7 @@ if __name__ == '__main__':
                                   accuracy=sklearn.metrics.accuracy_score)
 
                 model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
-                                          use_cuda=torch.cuda.is_available(), args=transformer_config,
-                                          merge_type=transformer_config['merge_type'],
-                                          merge_n=transformer_config['merge_n'])
+                                          use_cuda=torch.cuda.is_available(), args=transformer_config)
 
                 test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
                 test_preds[:, i] = test_predictions
@@ -81,8 +76,7 @@ if __name__ == '__main__':
 
         else:
             model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
-                                      args=transformer_config, merge_type=transformer_config['merge_type'],
-                                      merge_n=transformer_config['merge_n'])
+                                      args=transformer_config)
 
             train_df, eval_df = train_test_split(train, test_size=0.1, random_state=transformer_config['manual_seed'])
 
@@ -90,17 +84,13 @@ if __name__ == '__main__':
                               accuracy=sklearn.metrics.accuracy_score)
 
             model = MonoTransWiCModel(MODEL_TYPE, transformer_config["best_model_dir"], num_labels=2,
-                                      use_cuda=torch.cuda.is_available(), args=transformer_config,
-                                      merge_type=transformer_config['merge_type'],
-                                      merge_n=transformer_config['merge_n'])
+                                      use_cuda=torch.cuda.is_available(), args=transformer_config)
 
             test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
             test['predictions'] = test_predictions
-
     else:
         model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
-                                  args=transformer_config, merge_type=transformer_config['merge_type'],
-                                  merge_n=transformer_config['merge_n'])
+                                  args=transformer_config,)
         model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
 
         test_predictions, test_raw_outputs = model.predict(test_sentence_pairs)
