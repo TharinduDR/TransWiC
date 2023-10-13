@@ -18,6 +18,8 @@ from examples.monolingual.en_en.transformer_config import DATA_DIRECTORY, TEMP_D
     transformer_config, MODEL_NAME, MODEL_TYPE
 from transwic.algo.transformer.monotranswic import MonoTransWiCModel
 
+torch.multiprocessing.set_sharing_strategy('file_system')
+
 parser = argparse.ArgumentParser(description='''evaluates multiple models  ''')
 parser.add_argument('--wandb_api_key', required=False, help='wandb api key', default=None)
 arguments = parser.parse_args()
