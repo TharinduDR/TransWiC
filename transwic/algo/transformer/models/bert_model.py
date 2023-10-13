@@ -2,7 +2,7 @@ import torch.nn as nn
 from torch.nn import CrossEntropyLoss, MSELoss
 from transformers import BertPreTrainedModel, BertModel
 
-from transwic.algo.transformer.models.model_util import process_embeddings
+from transwic.algo.transformer.utils import process_embeddings
 
 
 class BertForSequenceClassification(BertPreTrainedModel):
@@ -33,14 +33,15 @@ class BertForSequenceClassification(BertPreTrainedModel):
         loss, logits = outputs[:2]
     """  # noqa: ignore flake8"
 
-    def __init__(self, config, weight=None, merge_type=None, merge_n=1):
+    def __init__(self, config, strategy, weight=None, merge_type=None, merge_n=1):
         super(BertForSequenceClassification, self).__init__(config)
         self.num_labels = config.num_labels
 
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.pool = None
-        if merge_type is not None and "-pool" in merge_type:
+        # if merge_type is not None and "-pool" in merge_type:
+        if 'P' in strategy:
             self.pool = nn.AdaptiveAvgPool1d(config.hidden_size)
 
         self.classifier = nn.Linear(config.hidden_size * merge_n, self.config.num_labels)
@@ -48,6 +49,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
         self.weight = weight
 
         self.init_weights()
+        self.strategy = strategy
         self.merge_type = merge_type
         self.merge_n = merge_n
 
@@ -72,9 +74,13 @@ class BertForSequenceClassification(BertPreTrainedModel):
         )
         # Complains if input_embeds is kept
 
-        processed_output = process_embeddings(outputs, entity_positions, self.merge_type, self.pool)
+        if entity_positions is None:
+            output = outputs[1]
+        else:
+            # processed_output = process_embeddings(outputs, entity_positions, self.merge_type, self.pool)
+            output = process_embeddings(outputs, entity_positions, self.strategy, self.merge_type, self.pool)
 
-        pooled_output = self.dropout(processed_output)
+        pooled_output = self.dropout(output)
         logits = self.classifier(pooled_output)
 
         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
