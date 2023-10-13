@@ -72,7 +72,7 @@ class ModelArgs:
     save_steps: int = 2000
     save_recent_only: bool = True
     silent: bool = False
-    tagging: bool = True
+    # tagging: bool = True
     tensorboard_dir: str = None
     thread_count: int = None
     train_batch_size: int = 8
@@ -86,8 +86,7 @@ class ModelArgs:
     warmup_steps: int = 0
     weight_decay: int = 0
     skip_special_tokens: bool = True
-    special_tags: list = None
-    merge_n: int = 1
+
 
     def update_from_dict(self, new_values):
         if isinstance(new_values, dict):
@@ -132,5 +131,10 @@ class MonoTransWiCArgs(ModelArgs):
     sliding_window: bool = False
     stride: float = 0.8
     tie_value: int = 1
+    tagging: bool = True
+    strategy: str = "B"
+    special_tags: list = None
+    merge_n: int = 1
+    merge_type: str = None
 
 

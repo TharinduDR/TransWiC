@@ -101,8 +101,6 @@ class MonoTransWiCModel:
             use_cuda=True,
             cuda_device=-1,
             onnx_execution_provider=None,
-            merge_type=None,
-            merge_n=1,
             **kwargs,
     ):
 
@@ -175,6 +173,10 @@ class MonoTransWiCModel:
             len_labels_list = 2 if not num_labels else num_labels
             self.args.labels_list = [i for i in range(len_labels_list)]
 
+        # set special tags list
+        if self.args.tagging:
+            self.args.special_tags, self.args.merge_n = self.set_special_tags()
+
         config_class, model_class, tokenizer_class = MODEL_CLASSES[model_type]
         if num_labels:
             self.config = config_class.from_pretrained(model_name, num_labels=num_labels, **self.args.config)
@@ -217,12 +219,12 @@ class MonoTransWiCModel:
             if not self.args.quantized_model:
                 if self.weight:
                     self.model = model_class.from_pretrained(
-                        model_name, config=self.config, weight=torch.Tensor(self.weight).to(self.device),
-                        merge_type=merge_type, merge_n=merge_n, **kwargs,
+                        model_name, config=self.config, strategy=self.args.strategy,  weight=torch.Tensor(self.weight).to(self.device),
+                        merge_type=self.args.merge_type, merge_n=self.args.merge_n, **kwargs,
                     )
                 else:
-                    self.model = model_class.from_pretrained(model_name, config=self.config, merge_type=merge_type,
-                                                             merge_n=merge_n, **kwargs)
+                    self.model = model_class.from_pretrained(model_name, config=self.config, strategy=self.args.strategy, merge_type=self.args.merge_type,
+                                                             merge_n=self.args.merge_n, **kwargs)
             else:
                 quantized_weights = torch.load(os.path.join(model_name, "pytorch_model.bin"))
                 if self.weight:
@@ -230,13 +232,14 @@ class MonoTransWiCModel:
                         None,
                         config=self.config,
                         state_dict=quantized_weights,
+                        strategy=self.args.strategy,
                         weight=torch.Tensor(self.weight).to(self.device),
-                        merge_type=merge_type,
-                        merge_n = merge_n
+                        merge_type=self.args.merge_type,
+                        merge_n = self.args.merge_n
                     )
                 else:
-                    self.model = model_class.from_pretrained(None, config=self.config, merge_type=merge_type,
-                                                             merge_n=merge_n, state_dict=quantized_weights)
+                    self.model = model_class.from_pretrained(None, config=self.config, strategy=self.args.strategy, merge_type=self.args.merge_type,
+                                                             merge_n=self.args.merge_n, state_dict=quantized_weights)
 
             if self.args.dynamic_quantize:
                 self.model = torch.quantization.quantize_dynamic(self.model, {torch.nn.Linear}, dtype=torch.qint8)
@@ -282,32 +285,20 @@ class MonoTransWiCModel:
         if self.args.tagging:
             self.tokenizer.add_tokens([self.args.begin_tag, self.args.end_tag], special_tokens=True)
 
-            if model_name == "bert":
-                self.model.bert.embeddings.word_embeddings.weight[-1, :] = torch.rand(
-                    [self.model.bert.config.hidden_size])
-                self.model.bert.embeddings.word_embeddings.weight[-2, :] = torch.rand(
-                    [self.model.bert.config.hidden_size])
+            # if model_name == "bert":
+            #     self.model.bert.embeddings.word_embeddings.weight[-1, :] = torch.rand(
+            #         [self.model.bert.config.hidden_size])
+            #     self.model.bert.embeddings.word_embeddings.weight[-2, :] = torch.rand(
+            #         [self.model.bert.config.hidden_size])
+            #
+            # elif model_name == "xlmroberta":
+            #     self.model.roberta.embeddings.word_embeddings.weight[-1, :] = torch.rand(
+            #         [self.model.bert.config.hidden_size])
+            #     self.model.roberta.embeddings.word_embeddings.weight[-2, :] = torch.rand(
+            #         [self.model.bert.config.hidden_size])
 
-            elif model_name == "xlmroberta":
-                self.model.roberta.embeddings.word_embeddings.weight[-1, :] = torch.rand(
-                    [self.model.bert.config.hidden_size])
-                self.model.roberta.embeddings.word_embeddings.weight[-2, :] = torch.rand(
-                    [self.model.bert.config.hidden_size])
+            # new embeddings will be added to the bottom of the matrix
             self.model.resize_token_embeddings(len(self.tokenizer))
-
-
-        # if self.args.tagging:
-        #     new_special_tokens_dict = {"additional_special_tokens": [self.args.begin_tag, self.args.end_tag]}
-        #     self.tokenizer.add_special_tokens(new_special_tokens_dict)
-        #     # new_token_id = self.tokenizer.convert_tokens_to_ids([self.args.begin_tag])[0]
-        #
-        #     embedding_size = self.model.bert.embeddings.word_embeddings.weight.size(1)
-        #     new_embeddings = torch.FloatTensor(len(new_special_tokens_dict["additional_special_tokens"]),
-        #                                        embedding_size).uniform_(-0.1, 0.1)
-        #     new_embedding_weight = torch.cat((self.model.bert.embeddings.word_embeddings.weight.data, new_embeddings), 0)
-        #     self.model.bert.embeddings.word_embeddings.weight.data = new_embedding_weight
-        #     self.model.config.vocab_size = self.model.config.vocab_size + len(
-        #         new_special_tokens_dict["additional_special_tokens"])
 
         if self.args.wandb_project and not wandb_available:
             warnings.warn("wandb_project specified but wandb is not available. Wandb disabled.")
@@ -411,6 +402,7 @@ class MonoTransWiCModel:
                     InputExample(i, text, None, label)
                     for i, (text, label) in enumerate(zip(train_df.iloc[:, 0], train_df.iloc[:, 1]))
                 ]
+
             if self.args.tagging:
                 train_dataset = self.load_and_cache_examples(train_examples, verbose=verbose,
                                                              special_entity_tokens=self.args.special_tags)
@@ -971,6 +963,7 @@ class MonoTransWiCModel:
                     eval_dataset = self.load_and_cache_examples(
                         eval_examples, evaluate=True, verbose=verbose, silent=silent
                     )
+
         os.makedirs(eval_output_dir, exist_ok=True)
 
         eval_sampler = SequentialSampler(eval_dataset)
@@ -1343,6 +1336,7 @@ class MonoTransWiCModel:
                     eval_dataset, window_counts = self.load_and_cache_examples(eval_examples, evaluate=True,
                                                                                no_cache=True,
                                                                                special_entity_tokens=self.args.special_tags)
+
                 else:
                     eval_dataset, window_counts = self.load_and_cache_examples(eval_examples, evaluate=True,
                                                                                no_cache=True)
@@ -1643,3 +1637,21 @@ class MonoTransWiCModel:
 
     def get_named_parameters(self):
         return [n for n, p in self.model.named_parameters()]
+
+    def set_special_tags(self):
+        special_tags = []
+        merge_n = 0
+        if self.args.strategy.startswith('CLS'):
+            special_tags.append('[CLS]')
+            merge_n = merge_n + 1
+        if 'B' in self.args.strategy:
+            special_tags.append(self.args.begin_tag)
+            merge_n = merge_n + 2
+        if 'E' in self.args.strategy:
+            special_tags.append(self.args.end_tag)
+            merge_n = merge_n + 2
+        if 'P' in self.args.strategy:
+            special_tags.append(self.args.begin_tag)
+            special_tags.append(self.args.end_tag)
+            merge_n = merge_n + 2
+        return special_tags, merge_n

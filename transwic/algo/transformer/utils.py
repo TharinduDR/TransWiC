@@ -233,7 +233,10 @@ def convert_example_to_feature(
     # Given a special entity token, find its position(s) in token ids
     if special_entity_tokens:
         if example.text_b:
-            length_entity_positions = 2 * len(special_entity_tokens)
+            if '[CLS]' in special_entity_tokens:
+                length_entity_positions = (2 * (len(special_entity_tokens)-1)) + 1
+            else:
+                length_entity_positions = 2 * len(special_entity_tokens)
         else:
             length_entity_positions = len(special_entity_tokens)
 
@@ -732,3 +735,112 @@ class LazyClassificationDataset(Dataset):
 
     def __len__(self):
         return self.num_entries
+
+
+def get_pooled_entity_output(all_embeddings, entity_positions, pool):
+    """
+    Get pooled entity sub-token embeddings
+
+    :param all_embeddings: tensor of all embeddings
+        if batch_size=8, max_seq_length=120, token_embedding_dimension=768, size of all_embeddings=([8,120,178])
+    :param entity_positions: tensor of entity positions
+        per instance both begin and end tag positions of each entity need to be provided.
+        [[begin tag position of entity1, end tag position of entity1, begin tag position of entity2, end tag position of
+         entity2,...]...]
+    :param pool:
+    :return: tensor of pooled entity embeddings
+    """
+    list_outputs = []
+    for i in range(all_embeddings.shape[0]):  # iterate through each instance of the batch
+        temp_input = all_embeddings[i]
+        temp_positions = entity_positions[i]  # entity positions of ith instance in the batch
+        pooled_entity_embeddings = []
+        for j in range(0, temp_positions.shape[0], 2):  # iterate through all begin tag entity positions
+            entity_embeddings = []
+            # consider embeddings of entity sub tokens
+            # iterate through all positions from begin tag position+1 to end tag position-1
+            for r in range(temp_positions[j]+1, temp_positions[j + 1]):
+                temp_embedding = temp_input[r, :]
+                entity_embeddings.append(temp_embedding)
+            merge = torch.cat(entity_embeddings, 0)
+            merge = (merge.unsqueeze(0)).unsqueeze(0)  # convert tensor of size ([n]) to ([1,1,n])
+            entity_tensor = pool(merge)
+            pooled_entity_embeddings.append(entity_tensor[0, 0])
+        output = torch.cat(pooled_entity_embeddings, 0)
+        list_outputs.append(output)
+
+    return torch.stack(list_outputs, dim=0)
+
+
+def process_embeddings(outputs, entity_positions, strategy, merge_type, pool):
+    list_outputs = []
+    if entity_positions is None:
+        raise ValueError('Required entity positions are not provided!')
+    else:
+        indices = [i for i in range(0, entity_positions.shape[0])]
+        tensor_indices = torch.tensor(indices, dtype=torch.long)
+
+    if strategy in ['B', 'CLS-B', 'E', 'CLS-E']:
+        for i in range(0, entity_positions.shape[1]):
+            temp_output = outputs[0][tensor_indices, entity_positions[:, i], :]
+            list_outputs.append(temp_output)
+
+    elif strategy == 'BT':
+        for i in range(0, entity_positions.shape[1]):
+            first_token_positions = torch.add(entity_positions[:, i], 1)
+            temp_output = outputs[0][tensor_indices, first_token_positions, :]
+            list_outputs.append(temp_output)
+
+    elif strategy == 'CLS-BT':
+        cls_output = outputs[0][tensor_indices, entity_positions[:, 0], :]
+        list_outputs.append(cls_output)
+
+        for i in range(1, entity_positions.shape[1]):
+            first_token_positions = torch.add(entity_positions[:, i], 1)
+            temp_output = outputs[0][tensor_indices, first_token_positions, :]
+            list_outputs.append(temp_output)
+
+    elif strategy == 'ET':
+        for i in range(0, entity_positions.shape[1]):
+            last_token_positions = torch.add(entity_positions[:, i], -1)
+            temp_output = outputs[0][tensor_indices, last_token_positions, :]
+            list_outputs.append(temp_output)
+
+    elif strategy == 'CLS-ET':
+        cls_output = outputs[0][tensor_indices, entity_positions[:, 0], :]
+        list_outputs.append(cls_output)
+
+        for i in range(1, entity_positions.shape[1]):
+            last_token_positions = torch.add(entity_positions[:, i], -1)
+            temp_output = outputs[0][tensor_indices, last_token_positions, :]
+            list_outputs.append(temp_output)
+
+    elif strategy == 'P':
+        temp_output = get_pooled_entity_output(outputs[0], entity_positions, pool)
+        list_outputs.append(temp_output)
+
+    elif strategy == 'CLS-P':
+        cls_output = outputs[0][tensor_indices, entity_positions[:, 0], :]
+        list_outputs.append(cls_output)
+
+        updated_entity_positions = entity_positions[:, 1:]
+        temp_output = get_pooled_entity_output(outputs[0], updated_entity_positions, pool)
+        list_outputs.append(temp_output)
+
+    else:
+        raise KeyError('Unknown strategy!')
+
+    if merge_type in ['add', 'avg']:
+        processed_output = outputs[0][tensor_indices, entity_positions[:, 0], :]
+        for element in list_outputs:
+            processed_output = processed_output.add(element)
+        if "avg" in merge_type:
+            processed_output = torch.div(processed_output, entity_positions.shape[1])
+
+    else:
+        processed_output = torch.cat(list_outputs, 1)
+
+    return processed_output
+
+
+
