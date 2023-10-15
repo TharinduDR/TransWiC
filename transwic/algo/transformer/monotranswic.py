@@ -1588,7 +1588,8 @@ class MonoTransWiCModel:
         return {metric: values[-1] for metric, values in metric_values.items()}
 
     def _create_training_progress_scores(self, multi_label, **kwargs):
-        extra_metrics = {key: [] for key in kwargs}
+        # extra_metrics = {key: [] for key in kwargs}
+        extra_metrics = {key: [] for key in kwargs if 'report' not in key}
         if multi_label:
             training_progress_scores = {
                 "global_step": [],
