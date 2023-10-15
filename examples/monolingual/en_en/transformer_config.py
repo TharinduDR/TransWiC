@@ -6,7 +6,7 @@ DATA_DIRECTORY = os.path.join(BASE_PATH_EN, "data")
 TEMP_DIRECTORY = "temp/data"
 
 MODEL_TYPE = "bert"
-MODEL_NAME = "bert-base-cased"
+MODEL_NAME = "bert-large-cased"
 
 transformer_config = {
     'output_dir': 'temp/outputs/',
@@ -16,9 +16,9 @@ transformer_config = {
     'fp16': False,
     'fp16_opt_level': 'O1',
     'max_seq_length': 120,
-    'train_batch_size': 8,
+    'train_batch_size': 16,
     'gradient_accumulation_steps': 1,
-    'eval_batch_size': 8,
+    'eval_batch_size': 64,
     'num_train_epochs': 3,
     'weight_decay': 0,
     'learning_rate': 1e-5,
@@ -28,16 +28,16 @@ transformer_config = {
     'max_grad_norm': 1.0,
     'do_lower_case': False,
 
-    'logging_steps': 100,
-    'save_steps': 100,
+    'logging_steps': 50,
+    'save_steps': 50,
     "no_cache": False,
     "no_save": False,
     "save_recent_only": True,
     'save_model_every_epoch': False,
-    'n_fold': 1,
+    'n_fold': 3,
     'evaluate_during_training': True,
     "evaluate_during_training_silent": False,
-    'evaluate_during_training_steps': 100,
+    'evaluate_during_training_steps': 50,
     "evaluate_during_training_verbose": True,
     'use_cached_eval_features': False,
     "save_best_model": True,
@@ -67,7 +67,7 @@ transformer_config = {
     "begin_tag": "<e>",
     "end_tag": "</e>",
 
-    "tagging": False,  # False: CLS baseline, True: given strategy
+    "tagging": True,  # False: CLS baseline, True: given strategy
     "strategy": "B",  # B, CLS-B, E, CLS-E, P, CLS-P, BT, CLS-BT, ET, CLS-ET
     "merge_type": "concat",  # avg, add
 

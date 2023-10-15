@@ -62,7 +62,7 @@ if __name__ == '__main__':
             test_preds = np.zeros((len(test), transformer_config["n_fold"]))
             for i in range(transformer_config["n_fold"]):
                 transformer_config['wandb_kwargs'] = {
-                    'group': f'en-en_{transformer_config["strategy"]}_{transformer_config["merge_type"]}', 'job_type': str(i)}
+                    'group': f'en-en_{MODEL_NAME}_{transformer_config["strategy"]}_{transformer_config["merge_type"]}', 'job_type': str(i)}
 
                 if os.path.exists(transformer_config['output_dir']) and os.path.isdir(transformer_config['output_dir']):
                     shutil.rmtree(transformer_config['output_dir'])
@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
         else:
             transformer_config['wandb_kwargs'] = {
-                'name': f'en-en_{transformer_config["strategy"]}_{transformer_config["merge_type"]}'}
+                'name': f'en-en_{MODEL_NAME}_{transformer_config["strategy"]}_{transformer_config["merge_type"]}'}
 
             model = MonoTransWiCModel(MODEL_TYPE, MODEL_NAME, num_labels=2, use_cuda=torch.cuda.is_available(),
                                       args=transformer_config)

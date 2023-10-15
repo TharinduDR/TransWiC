@@ -33,7 +33,7 @@ def print_information(df, pred_column, real_column, pos_column, eval_file_path=N
     pos_values = sorted(list(set(df[pos_column].tolist())))
 
     for pos_value in pos_values:
-        f.write("{}\n".format(pos_values))
+        f.write("{}\n".format(pos_value))
         temp_df = df.loc[df[pos_column] == pos_value]
         temp_predictions = temp_df[pred_column].tolist()
         temp_real_values = temp_df[real_column].tolist()
