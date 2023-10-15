@@ -54,7 +54,7 @@ transformer_config = {
     "multiprocessing_chunksize": 500,
     'silent': False,
 
-    'wandb_project': 'TransWic',
+    'wandb_project': 'TransWiC-groups',  # 'TransWic',
     'wandb_kwargs': {},
 
     "use_early_stopping": True,
