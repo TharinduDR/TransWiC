@@ -690,8 +690,6 @@ class MonoTransWiCModel:
                         for key in results:
                             if isinstance(results[key], numbers.Number):
                                 training_progress_scores[key].append(results[key])
-                            else:
-                                training_progress_scores[key].append(-1)
                         report = pd.DataFrame(training_progress_scores)
                         report.to_csv(
                             os.path.join(args.output_dir, "training_progress_scores.csv"), index=False,
@@ -792,8 +790,7 @@ class MonoTransWiCModel:
                 for key in results:
                     if isinstance(results[key], numbers.Number):
                         training_progress_scores[key].append(results[key])
-                    else:
-                        training_progress_scores[key].append(-1)
+
                 report = pd.DataFrame(training_progress_scores)
                 report.to_csv(os.path.join(args.output_dir, "training_progress_scores.csv"), index=False)
 
