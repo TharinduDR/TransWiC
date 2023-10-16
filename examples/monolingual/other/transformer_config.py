@@ -12,12 +12,11 @@ TEMP_DIRECTORY = "temp/data"
 MODEL_TYPE = "xlmroberta"
 MODEL_NAME = "xlm-roberta-large"
 
-LANGUAGES = ["en", "ar", "fr", "ru", "zh"]  # only used by transformer_combined
-TRAIN_N = None  # Only used by transformer. If int is given top TRAIN_N training instances will be considered.
 
 transformer_config = {
     'output_dir': 'temp/outputs/',
-    "best_model_dir": "temp/outputs/best_model",
+    # "best_model_dir": "temp/outputs/best_model",
+    "best_model_dir": "best_model",
     'cache_dir': 'temp/cache_dir/',
 
     'fp16': False,
@@ -26,7 +25,7 @@ transformer_config = {
     'train_batch_size': 8,
     'gradient_accumulation_steps': 1,
     'eval_batch_size': 8,
-    'num_train_epochs': 3,
+    'num_train_epochs': 5,
     'weight_decay': 0,
     'learning_rate': 1e-5,
     'adam_epsilon': 1e-8,
@@ -35,16 +34,16 @@ transformer_config = {
     'max_grad_norm': 1.0,
     'do_lower_case': False,
 
-    'logging_steps': 100,
-    'save_steps': 100,
+    'logging_steps': 20,
+    'save_steps': 20,
     "no_cache": False,
     "no_save": False,
     "save_recent_only": True,
     'save_model_every_epoch': False,
-    'n_fold': 1,
+    'n_fold': 3,
     'evaluate_during_training': True,
     "evaluate_during_training_silent": False,
-    'evaluate_during_training_steps': 100,
+    'evaluate_during_training_steps': 20,
     "evaluate_during_training_verbose": True,
     'use_cached_eval_features': False,
     "save_best_model": True,
@@ -62,7 +61,7 @@ transformer_config = {
     "multiprocessing_chunksize": 500,
     'silent': False,
 
-    'wandb_project': None,
+    'wandb_project': 'TransWiC-groups',  # 'TransWic',
     'wandb_kwargs': {},
 
     "use_early_stopping": True,
@@ -72,12 +71,12 @@ transformer_config = {
     "early_stopping_metric_minimize": True,
     "early_stopping_consider_epochs": False,
 
-    "tagging": True,
-    "begin_tag": "<begin>",
-    "end_tag": "<end>",
-    "merge_type": "cls-concat",  # "cls, "concat", "add", "avg", "entity-pool", "entity-first", "entity-last", "cls-*"
-    "special_tags": ["<begin>"],  # Should be either begin_tag or end_tag
-    # Need to be provided only for the merge_types: concat, add and avg. For others this will be automatically set.
+    "begin_tag": "<e>",
+    "end_tag": "</e>",
+
+    "tagging": True,  # False: CLS baseline, True: given strategy
+    "strategy": "B",  # B, CLS-B, E, CLS-E, P, CLS-P, BT, CLS-BT, ET, CLS-ET
+    "merge_type": "concat",  # avg, add
 
     "manual_seed": 777,
 
