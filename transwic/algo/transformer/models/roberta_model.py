@@ -4,7 +4,7 @@ from torch.nn import CrossEntropyLoss, MSELoss
 from transformers import ROBERTA_PRETRAINED_MODEL_ARCHIVE_LIST, RobertaConfig, RobertaModel
 from transformers.models.roberta.modeling_roberta import RobertaPreTrainedModel
 
-from transwic.algo.transformer.models.model_util import process_embeddings
+from transwic.algo.transformer.utils import process_embeddings
 
 
 class RobertaClassificationHead(nn.Module):
@@ -60,19 +60,19 @@ class RobertaForSequenceClassification(RobertaPreTrainedModel):
     pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_LIST
     base_model_prefix = "roberta"
 
-    def __init__(self, config, weight=None, merge_type=None, merge_n=1):
+    def __init__(self, config, strategy, weight=None, merge_type=None, merge_n=1):
         super(RobertaForSequenceClassification, self).__init__(config)
         self.num_labels = config.num_labels
 
         self.roberta = RobertaModel(config)
 
         self.pool = None
-        if merge_type is not None and "-pool" in merge_type:
+        if 'P' in strategy:
             self.pool = nn.AdaptiveAvgPool1d(config.hidden_size)
 
         self.classifier = RobertaClassificationHead(config, merge_n)
         self.weight = weight
-
+        self.strategy = strategy
         self.merge_type = merge_type
         self.merge_n = merge_n
 
@@ -97,9 +97,12 @@ class RobertaForSequenceClassification(RobertaPreTrainedModel):
         # # sequence_output = outputs[0]
         # sequence_output = outputs[1]
 
-        processed_output = process_embeddings(outputs, entity_positions, self.merge_type, self.pool)
+        if entity_positions is None:
+            output = outputs[1]
+        else:
+            output = process_embeddings(outputs, entity_positions, self.strategy, self.merge_type, self.pool)
 
-        logits = self.classifier(processed_output)
+        logits = self.classifier(output)
 
         outputs = (logits,) + outputs[2:]
         if labels is not None:
