@@ -68,7 +68,7 @@ transformer_config = {
     "end_tag": "</e>",
 
     "tagging": True,  # False: CLS baseline, True: given strategy
-    "strategy": "CLS-E",  # B, CLS-B, E, CLS-E, P, CLS-P, BT, CLS-BT, ET, CLS-ET
+    "strategy": "P",  # B, CLS-B, E, CLS-E, P, CLS-P, BT, CLS-BT, ET, CLS-ET
     "merge_type": "concat",  # avg, add
 
     "manual_seed": 777,
