@@ -138,6 +138,7 @@ class MonoTransWiCModel:
         }
 
         self.args = self._load_model_args(model_name)
+        self.args.model_name = model_name
 
         if isinstance(args, dict):
             self.args.update_from_dict(args)
@@ -1664,7 +1665,10 @@ class MonoTransWiCModel:
         special_tags = []
         merge_n = 0
         if self.args.strategy.startswith('CLS'):
-            special_tags.append('[CLS]')
+            if 'xlm-roberta' in self.args.model_name:
+                special_tags.append('<s>')  # XLMRobertaTokenizer: cls_token = '<s>'
+            else:
+                special_tags.append('[CLS]')
             merge_n = merge_n + 1
         if 'B' in self.args.strategy:
             special_tags.append(self.args.begin_tag)

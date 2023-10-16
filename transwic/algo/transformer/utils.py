@@ -233,7 +233,7 @@ def convert_example_to_feature(
     # Given a special entity token, find its position(s) in token ids
     if special_entity_tokens:
         if example.text_b:
-            if '[CLS]' in special_entity_tokens:
+            if '[CLS]' or '<s>' in special_entity_tokens:
                 length_entity_positions = (2 * (len(special_entity_tokens)-1)) + 1
             else:
                 length_entity_positions = 2 * len(special_entity_tokens)
