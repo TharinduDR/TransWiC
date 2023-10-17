@@ -176,7 +176,8 @@ class MonoTransWiCModel:
             self.args.labels_list = [i for i in range(len_labels_list)]
 
         # # set special tags list
-        # if self.args.tagging:
+        if self.args.tagging:
+            self.args.merge_n = self.set_merge_embeddings()
         #     self.args.special_tags, self.args.merge_n = self.set_special_tags()
 
         config_class, model_class, tokenizer_class = MODEL_CLASSES[model_type]
@@ -304,7 +305,8 @@ class MonoTransWiCModel:
 
         # set special tags list
         if self.args.tagging:
-            self.args.special_tags, self.args.merge_n = self.set_special_tags()
+            # self.args.special_tags, self.args.merge_n = self.set_special_tags()
+            self.args.special_tags = self.set_special_tags()
 
         if self.args.wandb_project and not wandb_available:
             warnings.warn("wandb_project specified but wandb is not available. Wandb disabled.")
@@ -1665,6 +1667,16 @@ class MonoTransWiCModel:
     def get_named_parameters(self):
         return [n for n, p in self.model.named_parameters()]
 
+
+    def set_merge_embeddings(self):
+        merge_n = 0
+        if self.args.strategy.startswith('CLS'):
+            merge_n = merge_n + 1
+        if 'B' or 'E' or 'P' in self.args.strategy:
+            merge_n = merge_n + 2
+        return merge_n
+
+
     def set_special_tags(self):
         special_tags = []
         merge_n = 0
@@ -1685,4 +1697,4 @@ class MonoTransWiCModel:
             special_tags.append(self.args.begin_tag)
             special_tags.append(self.args.end_tag)
             merge_n = merge_n + 2
-        return special_tags, merge_n
+        return special_tags
