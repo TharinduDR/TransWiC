@@ -175,9 +175,9 @@ class MonoTransWiCModel:
             len_labels_list = 2 if not num_labels else num_labels
             self.args.labels_list = [i for i in range(len_labels_list)]
 
-        # set special tags list
-        if self.args.tagging:
-            self.args.special_tags, self.args.merge_n = self.set_special_tags()
+        # # set special tags list
+        # if self.args.tagging:
+        #     self.args.special_tags, self.args.merge_n = self.set_special_tags()
 
         config_class, model_class, tokenizer_class = MODEL_CLASSES[model_type]
         if num_labels:
@@ -301,6 +301,10 @@ class MonoTransWiCModel:
 
             # new embeddings will be added to the bottom of the matrix
             self.model.resize_token_embeddings(len(self.tokenizer))
+
+        # set special tags list
+        if self.args.tagging:
+            self.args.special_tags, self.args.merge_n = self.set_special_tags()
 
         if self.args.wandb_project and not wandb_available:
             warnings.warn("wandb_project specified but wandb is not available. Wandb disabled.")
@@ -1665,10 +1669,11 @@ class MonoTransWiCModel:
         special_tags = []
         merge_n = 0
         if self.args.strategy.startswith('CLS'):
-            if 'xlm-roberta' in self.args.model_name:
-                special_tags.append('<s>')  # XLMRobertaTokenizer: cls_token = '<s>'
-            else:
-                special_tags.append('[CLS]')
+            special_tags.append(self.tokenizer.cls_token)
+            # if 'xlm-roberta' in self.args.model_name:
+            #     special_tags.append('<s>')  # XLMRobertaTokenizer: cls_token = '<s>'
+            # else:
+            #     special_tags.append('[CLS]')
             merge_n = merge_n + 1
         if 'B' in self.args.strategy:
             special_tags.append(self.args.begin_tag)

@@ -19,6 +19,7 @@ from __future__ import absolute_import, division, print_function
 import csv
 import json
 import linecache
+import logging
 import os
 import sys
 from collections import Counter
@@ -31,6 +32,8 @@ from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import f1_score, matthews_corrcoef
 from torch.utils.data import Dataset
 from tqdm.auto import tqdm
+
+logger = logging.getLogger(__name__)
 
 try:
     import torchvision
@@ -233,8 +236,10 @@ def convert_example_to_feature(
     # Given a special entity token, find its position(s) in token ids
     if special_entity_tokens:
         if example.text_b:
-            if '[CLS]' or '<s>' in special_entity_tokens:
-                length_entity_positions = (2 * (len(special_entity_tokens)-1)) + 1
+            # if '[CLS]' or '<s>' in special_entity_tokens:
+            #     length_entity_positions = (2 * (len(special_entity_tokens)-1)) + 1
+            if cls_token in special_entity_tokens:
+                length_entity_positions = (2 * (len(special_entity_tokens) - 1)) + 1
             else:
                 length_entity_positions = 2 * len(special_entity_tokens)
         else:
@@ -252,6 +257,7 @@ def convert_example_to_feature(
         # entity_positions = [i for i in range(len(input_ids)) if input_ids[i] == special_entity_token_id]
         # handle if any special entity token is truncated
         if len(entity_positions) != length_entity_positions:
+            logger.error(f"Found {len(entity_positions)} entity positions, but requires {length_entity_positions}")
             return None
     else:
         entity_positions = None
@@ -368,7 +374,11 @@ def convert_example_to_feature_sliding_window(
         # Given a special entity token, find its position(s) in token ids
         if special_entity_tokens:
             if example.text_b:
-                length_entity_positions = 2 * len(special_entity_tokens)
+                # if '[CLS]' or '<s>' in special_entity_tokens:
+                if cls_token in special_entity_tokens:
+                    length_entity_positions = (2 * (len(special_entity_tokens)-1)) + 1
+                else:
+                    length_entity_positions = 2 * len(special_entity_tokens)
             else:
                 length_entity_positions = len(special_entity_tokens)
 
@@ -384,6 +394,7 @@ def convert_example_to_feature_sliding_window(
             # entity_positions = [i for i in range(len(input_ids)) if input_ids[i] == special_entity_token_id]
             # handle if any special entity token is truncated
             if len(entity_positions) != length_entity_positions:
+                logger.error(f"Found {len(entity_positions)} entity positions, but requires {length_entity_positions}")
                 return None
         else:
             entity_positions = None
